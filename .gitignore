@@ -1,0 +1,56 @@
+﻿# OS/Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+.venv*/
+venv/
+.mypy_cache/
+.pytest_cache/
+.coverage*
+dist/
+build/
+
+# Node / Web
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+coverage/
+
+# LaTeX (docs)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.lol
+*.nav
+*.snm
+*.xdv
+
+# Captures/Exports (generated)
+/capture/exports/
+
+# Misc
+*.tmp
+*.bak

@@ -1,0 +1,6 @@
+﻿fastapi>=0.112
+uvicorn[standard]>=0.30
+pydantic>=2.8
+psutil>=5.9
+asyncssh>=2.14
+APScheduler>=3.10
