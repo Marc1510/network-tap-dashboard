@@ -43,7 +43,6 @@ class ScheduleManager:
         self._utcnow_iso = utcnow_iso
         self.tests_manager = tests_manager
         self._load()
-        print(f"ScheduleManager initialized with {len(self._schedules)} schedules")
 
     def _load(self) -> None:
         self.runtime_dir.mkdir(parents=True, exist_ok=True)
@@ -52,8 +51,7 @@ class ScheduleManager:
         try:
             with self.file.open("r", encoding="utf-8") as f:
                 raw = json.load(f)
-        except Exception as e:
-            print(f"Error loading schedules: {e}")
+        except Exception:
             return
         if isinstance(raw, dict) and isinstance(raw.get("items"), list):
             for it in raw["items"]:
@@ -69,7 +67,6 @@ class ScheduleManager:
                         now = datetime.now()
                         if inprog and inprog < now - timedelta(minutes=5):
                             it["inProgressUntilUtc"] = None
-                            print(f"Cleared stale inProgressUntilUtc for schedule {sid}")
                     except Exception:
                         it["inProgressUntilUtc"] = None
                 if it.get("currentTabId"):
@@ -134,7 +131,6 @@ class ScheduleManager:
         async with self._lock:
             self._schedules[sid] = doc
             await self._save_locked()
-        print(f"Created schedule {sid}, next run at {next_dt.astimezone(self._tz).isoformat()}")
         self._configure_job(sid, next_dt)
         return dict(doc)
 
@@ -171,7 +167,6 @@ class ScheduleManager:
         async with self._lock:
             self._schedules[sid] = updated
             await self._save_locked()
-        print(f"Updated schedule {sid}, next run at {next_dt.astimezone(self._tz).isoformat()}")
         self._configure_job(sid, next_dt)
         return dict(updated)
 
@@ -200,8 +195,6 @@ class ScheduleManager:
             )
         if not getattr(self._scheduler, "running", False):
             self._scheduler.start()
-            print("APScheduler started")
-        print("Schedule manager started using APScheduler")
         # Nach dem Start alle bekannten Schedules neu berechnen und als Jobs registrieren
         # Wichtig: im FastAPI-Startup läuft bereits eine Eventloop
         try:
@@ -220,7 +213,6 @@ class ScheduleManager:
                 await result
             with contextlib.suppress(Exception):
                 self._scheduler.remove_all_jobs()
-        print("Schedule manager stopped")
         with contextlib.suppress(JobLookupError):
             if self._scheduler is not None:
                 self._scheduler.remove_job(self._sync_job_id)
@@ -238,7 +230,6 @@ class ScheduleManager:
         return f"sched:{sid}"
 
     async def _refresh_all_jobs(self) -> None:
-        print("Refreshing all scheduled jobs...")
         async with self._lock:
             updates: dict[str, datetime | None] = {}
             changed = False
@@ -249,26 +240,19 @@ class ScheduleManager:
                     item["nextRunUtc"] = next_str
                     changed = True
                 updates[sid] = next_dt
-                if next_dt:
-                    print(f"  Schedule {sid}: next run at {next_dt.astimezone(self._tz).isoformat()}")
-                else:
-                    print(f"  Schedule {sid}: no future runs")
             if changed:
                 await self._save_locked()
         for sid, run_at in updates.items():
             self._configure_job(sid, run_at)
         self._ensure_sync_job()
-        print(f"Job refresh complete. Active jobs: {len([j for j in self._scheduler.get_jobs() if j.id != self._sync_job_id])}")
 
     def _configure_job(self, sid: str, run_at: datetime | None) -> None:
         job_id = self._job_id(sid)
         if self._scheduler is None or not getattr(self._scheduler, "running", False):
-            print("Scheduler not running, cannot schedule job now (will be refreshed later)")
             return
         with contextlib.suppress(JobLookupError):
             self._scheduler.remove_job(job_id)
         if not run_at:
-            print(f"No run_at time for schedule {sid}, job removed")
             self._ensure_sync_job()
             return
         if run_at.tzinfo is None:
@@ -284,16 +268,12 @@ class ScheduleManager:
                 max_instances=1,
                 misfire_grace_time=180,
             )
-            print(f"Job {job_id} scheduled for {run_at.astimezone(self._tz).isoformat()}")
-        except Exception as e:
-            print(f"Error adding job {job_id}: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
+            pass
         self._ensure_sync_job()
 
     def _ensure_sync_job(self) -> None:
         if self._scheduler is None or not getattr(self._scheduler, "running", False):
-            print("Scheduler not running, cannot ensure sync job")
             return
         if self._scheduler.get_job(self._sync_job_id) is None:
             self._scheduler.add_job(
@@ -305,7 +285,6 @@ class ScheduleManager:
                 max_instances=1,
                 misfire_grace_time=30,
             )
-            print("Sync job added (runs every 10 seconds)")
 
     def _next_run_datetime(self, item: dict) -> datetime | None:
         if not item.get("enabled", True):
@@ -529,24 +508,19 @@ class ScheduleManager:
         async with self._lock:
             item = self._schedules.get(schedule_id)
             if not item:
-                print(f"Schedule {schedule_id} not found in _execute_schedule")
                 return
             schedule_enabled = bool(item.get("enabled", True))
             if not schedule_enabled and not force:
-                print(f"Schedule {schedule_id} is disabled, skipping execution")
                 return
             if item.get("currentTabId"):
                 if not force:
-                    print(f"Schedule {schedule_id} already running (tab: {item.get('currentTabId')})")
                     if not bool(item.get("skipIfRunning", True)):
                         item["_queuedRun"] = True
-                        print(f"Queued a follow-up run for schedule {schedule_id}")
                 next_dt = self._next_run_datetime(item) if schedule_enabled else None
                 item["nextRunUtc"] = self._to_utc_iso(next_dt) if next_dt else None
                 await self._save_locked()
             else:
                 now_utc = datetime.now(timezone.utc)
-                print(f"Executing schedule {schedule_id} at {now_utc}")
                 item["lastRunUtc"] = now_utc.strftime("%Y%m%dT%H%M%SZ")
                 item["lastRunStatus"] = None
                 item["updatedUtc"] = item["lastRunUtc"]
@@ -554,10 +528,6 @@ class ScheduleManager:
                 schedule_copy = dict(item)
                 if schedule_enabled:
                     next_dt = self._next_run_datetime(item)
-                    if next_dt:
-                        print(f"Next run for {schedule_id} scheduled at {next_dt}")
-                    else:
-                        print(f"No future runs for {schedule_id}")
                 else:
                     next_dt = None
                 item["nextRunUtc"] = self._to_utc_iso(next_dt) if next_dt else None
@@ -570,10 +540,8 @@ class ScheduleManager:
             return
         try:
             await self._start_scheduled_run(schedule_copy)
-        except Exception as exc:  # noqa: BLE001
-            print(f"Error executing schedule {schedule_id}: {exc}")
-            import traceback
-            traceback.print_exc()
+        except Exception:  # noqa: BLE001
+            pass
             async with self._lock:
                 stored = self._schedules.get(schedule_id)
                 if stored:

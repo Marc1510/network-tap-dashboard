@@ -53,8 +53,7 @@ def load_users() -> list[str]:
             return []
     except FileNotFoundError:
         return []
-    except Exception as exc:  # noqa: BLE001
-        print(f"Warnung: SSH-Nutzerdatei konnte nicht gelesen werden: {exc}")
+    except Exception:  # noqa: BLE001
         return []
 
 

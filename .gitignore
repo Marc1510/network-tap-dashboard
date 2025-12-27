@@ -48,6 +48,17 @@ coverage/
 *.snm
 *.xdv
 
+# Capture files and runtime data
+capture/exports/*.pcap
+capture/exports/*.pcapng
+capture/tmp/
+
+# SSH credentials
+ssh_users.json
+
+# Runtime state
+schedules.json
+
 # Captures/Exports (generated)
 /capture/exports/
 

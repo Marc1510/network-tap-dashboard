@@ -9,7 +9,6 @@ def create_startup_handler(schedule_manager, tests_manager):
 		schedule_manager.start()
 		# Now refresh all jobs in the async context
 		await schedule_manager._refresh_all_jobs()
-		print(f"Scheduler initialized with {len(schedule_manager._schedules)} schedules")
 
 	return on_startup
 

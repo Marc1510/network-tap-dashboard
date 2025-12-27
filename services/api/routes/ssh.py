@@ -22,8 +22,7 @@ router = APIRouter(prefix="/ssh")
 def api_list_ssh_users():
 	try:
 		return {"users": load_users()}
-	except Exception as exc:
-		print(f"Warnung: Fehler beim Laden der SSH-Nutzer: {exc}")
+	except Exception:
 		return {"users": []}
 
 
