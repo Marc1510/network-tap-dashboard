@@ -1,0 +1,65 @@
+{
+  "app": {
+    "title": "TAP Dashboard",
+    "page": {
+      "home": "Startseite",
+      "captureDetail": "Test-Details",
+      "tests": "Test starten",
+      "captures": "Aufzeichnungen",
+      "schedule": "Zeitplan",
+      "testConfigNew": "Neue Testkonfiguration",
+      "testConfig": "Testkonfiguration"
+    },
+    "menu": {
+      "open": "Men\u00fc \u00f6ffnen"
+    }
+  },
+  "nav": {
+    "home": "Start",
+    "tests": "Test starten",
+    "captures": "Aufzeichnungen",
+    "schedule": "Zeitplan",
+    "testConfig": "Testkonfiguration"
+  },
+  "status": {
+    "apiOk": "API erreichbar",
+    "apiDown": "API nicht erreichbar",
+    "apiChecking": "API pr\u00fcfen...",
+    "apiOnline": "API ist online",
+    "apiOffline": "API ist offline",
+    "apiLoading": "API-Status wird geladen...",
+    "apiBase": "Basis-URL",
+    "apiBaseLocal": "lokal",
+    "lastError": "Letzter Fehler",
+    "label": "Status"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "license": "Lizenzstatus",
+    "languageDescription": "W\u00e4hle die Sprache f\u00fcr die Benutzeroberfl\u00e4che.",
+    "languageEnglish": "Englisch",
+    "languageGerman": "Deutsch"
+  },
+  "license": {
+    "title": "Lizenzstatus",
+    "noData": "Keine Statusdaten verf\u00fcgbar.",
+    "boardRevision": "Board-Revision",
+    "fpgaRevision": "FPGA-Revision",
+    "license": "Lizenz",
+    "licensePresent": "vorhanden",
+    "licenseAbsent": "nicht vorhanden",
+    "fpgaTemp": "FPGA-Temp.",
+    "fpgaId": "FPGA-ID",
+    "rawData": "Rohdaten",
+    "copy": "Kopieren",
+    "copied": "Kopiert"
+  },
+  "common": {
+    "close": "Schlie\u00dfen"
+  },
+  "footer": {
+    "settings": "Einstellungen",
+    "ssh": "SSH Terminal"
+  }
+}

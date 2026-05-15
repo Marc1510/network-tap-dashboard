@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { Menu as MenuIcon, Home, Play, FolderOpen, CalendarClock, Settings } from 'lucide-react'
 import Sidebar from './components/Sidebar'
-import LicenseModal from './components/LicenseModal'
+import SettingsModal from './components/SettingsModal'
 import CapturesList from './components/CapturesList'
 import CaptureDetailComponent from './components/CaptureDetail'
 import SystemResources from './components/SystemResources'
@@ -19,6 +19,7 @@ import TestStarter from './components/TestStarter'
 import Schedule from './components/Schedule'
 import QuickActionBar from './components/QuickActionBar'
 import type { CaptureSession, CaptureFile, CaptureDetail } from './types'
+import { useTranslation } from 'react-i18next'
 
 // --- Re-export for backwards compatibility ---
 export type { CaptureSession, CaptureFile, CaptureDetail }
@@ -55,6 +56,7 @@ const CapturesView = ({ apiBase }: { apiBase: string }) => {
 }
 
 function App() {
+  const { t, i18n } = useTranslation()
   const [apiStatus, setApiStatus] = useState<'unknown' | 'ok' | 'down'>('unknown')
   const [lastError, setLastError] = useState<string | null>(null)
   const apiBase = useMemo(() => (import.meta.env.VITE_API_BASE ? String(import.meta.env.VITE_API_BASE) : ''), [])
@@ -66,16 +68,16 @@ function App() {
   const pageTitle = useMemo(() => {
     const p = location.pathname
     // Specific routes first
-    if (p === '/') return 'Startseite'
-    if (p.startsWith('/captures/')) return 'Test-Details'
-    if (p === '/tests') return 'Test starten'
-    if (p === '/captures') return 'Aufzeichnungen'
-    if (p === '/schedule') return 'Zeitplan'
-    if (p === '/test-config/new') return 'Neue Testkonfiguration'
-    if (p.startsWith('/test-config/')) return 'Testkonfiguration'
-    if (p === '/test-config') return 'Testkonfiguration'
-    return 'TAP Dashboard'
-  }, [location.pathname])
+    if (p === '/') return t('app.page.home')
+    if (p.startsWith('/captures/')) return t('app.page.captureDetail')
+    if (p === '/tests') return t('app.page.tests')
+    if (p === '/captures') return t('app.page.captures')
+    if (p === '/schedule') return t('app.page.schedule')
+    if (p === '/test-config/new') return t('app.page.testConfigNew')
+    if (p.startsWith('/test-config/')) return t('app.page.testConfig')
+    if (p === '/test-config') return t('app.page.testConfig')
+    return t('app.title')
+  }, [location.pathname, i18n.language, t])
 
   const pageIcon = useMemo(() => {
     const p = location.pathname
@@ -119,7 +121,7 @@ function App() {
 
 
   // Routing via React Router, keine Hash-Navigation nötig
-  const [licenseModalOpen, setLicenseModalOpen] = useState(false)
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false)
 
   return (
     <WindowsProvider>
@@ -127,7 +129,7 @@ function App() {
       <CssBaseline />
 
       {/* Permanent Sidebar (desktop) */}
-      <Sidebar onOpenLicenseModal={() => setLicenseModalOpen(true)} />
+      <Sidebar onOpenSettingsModal={() => setSettingsModalOpen(true)} />
       {/* Temporary Sidebar (mobile) */}
       <Drawer
         anchor="left"
@@ -136,7 +138,7 @@ function App() {
         sx={{ display: { xs: 'block', sm: 'none' }, '& .MuiDrawer-paper': { width: 260, backgroundColor: '#181818' } }}
         ModalProps={{ keepMounted: true }}
       >
-    <Sidebar variant="temporary" onNavigate={() => setMobileOpen(false)} onOpenLicenseModal={() => setLicenseModalOpen(true)} />
+    <Sidebar variant="temporary" onNavigate={() => setMobileOpen(false)} onOpenSettingsModal={() => setSettingsModalOpen(true)} />
       </Drawer>
 
       {/* Right pane with header and content */}
@@ -148,7 +150,7 @@ function App() {
         }}>
           <Toolbar variant="dense" sx={{ minHeight: 48, py: 0 }}>
             <IconButton
-              aria-label="Menü öffnen"
+              aria-label={t('app.menu.open')}
               onClick={() => setMobileOpen(true)}
               sx={{ display: { xs: 'inline-flex', sm: 'none' }, mr: 1 }}
               color="inherit"
@@ -216,7 +218,7 @@ function App() {
               >
                 <Typography variant="body2" component="span" color="inherit">
                   <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                    {apiStatus === 'ok' ? 'API erreichbar' : apiStatus === 'down' ? 'API nicht erreichbar' : 'API prüfen...'}
+                    {apiStatus === 'ok' ? t('status.apiOk') : apiStatus === 'down' ? t('status.apiDown') : t('status.apiChecking')}
                   </Box>
                   <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
                     API
@@ -248,20 +250,20 @@ function App() {
                     }}
                   />
                   <Typography variant="body2">
-                    Status: {apiStatus === 'ok' ? 'API erreichbar' : apiStatus === 'down' ? 'API nicht erreichbar' : 'API prüfen...'}
+                    {t('status.label')}: {apiStatus === 'ok' ? t('status.apiOk') : apiStatus === 'down' ? t('status.apiDown') : t('status.apiChecking')}
                   </Typography>
                 </Box>
               </MenuItem>
               <Divider />
               <MenuItem disabled>
                 <Typography variant="caption" sx={{ whiteSpace: 'normal', maxWidth: 320 }}>
-                  Basis-URL: {apiBase || 'lokal'}
+                  {t('status.apiBase')}: {apiBase || t('status.apiBaseLocal')}
                 </Typography>
               </MenuItem>
               {lastError && (
                 <MenuItem disabled>
                   <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'normal', maxWidth: 320 }}>
-                    Letzter Fehler: {lastError}
+                    {t('status.lastError')}: {lastError}
                   </Typography>
                 </MenuItem>
               )}
@@ -283,7 +285,7 @@ function App() {
         </Container>
 
         {/* Lizenz-Modal global */}
-        <LicenseModal open={licenseModalOpen} onClose={() => setLicenseModalOpen(false)} apiBase={apiBase} />
+        <SettingsModal open={settingsModalOpen} onClose={() => setSettingsModalOpen(false)} apiBase={apiBase} />
         {/* Floating Windows global sichtbar */}
         <WindowsLayer />
       </Box>

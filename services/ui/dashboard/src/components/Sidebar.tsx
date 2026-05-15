@@ -1,27 +1,20 @@
 import { Box, Divider, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Paper, Tooltip, Collapse, Typography, Menu, MenuItem } from '@mui/material'
-import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderOpen, BadgeCheck, Terminal, Settings, Play, CalendarClock, Activity, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileX, CheckCircle, Thermometer, MoreHorizontal } from 'lucide-react'
+import { Home, FolderOpen, Terminal, Settings, Play, CalendarClock, Activity, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileX, CheckCircle, Thermometer, MoreHorizontal } from 'lucide-react'
 import { useWindows } from './windows/WindowsContext'
-
-const navItems: { label: string; to: string; icon: ReactNode }[] = [
-  { label: 'Start', to: '/', icon: <Home size={18} /> },
-  { label: 'Test starten', to: '/tests', icon: <Play size={18} /> },
-  { label: 'Aufzeichnungen', to: '/captures', icon: <FolderOpen size={18} /> },
-  { label: 'Zeitplan', to: '/schedule', icon: <CalendarClock size={18} /> },
-  { label: 'Testkonfiguration', to: '/test-config', icon: <Settings size={18} /> },
-]
+import { useTranslation } from 'react-i18next'
 
 type SidebarProps = {
   variant?: 'permanent' | 'temporary'
   onNavigate?: () => void
-  onOpenLicenseModal?: () => void
+  onOpenSettingsModal?: () => void
 }
 
-export default function Sidebar({ variant = 'permanent', onNavigate, onOpenLicenseModal }: SidebarProps) {
+export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSettingsModal }: SidebarProps) {
   const location = useLocation()
   const { openSshWindow } = useWindows()
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       const raw = localStorage.getItem('sidebarCollapsed')
@@ -197,6 +190,14 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenLicen
     }
     return location.pathname.startsWith(itemPath)
   }
+
+  const navItems = [
+    { label: t('nav.home'), to: '/', icon: <Home size={18} /> },
+    { label: t('nav.tests'), to: '/tests', icon: <Play size={18} /> },
+    { label: t('nav.captures'), to: '/captures', icon: <FolderOpen size={18} /> },
+    { label: t('nav.schedule'), to: '/schedule', icon: <CalendarClock size={18} /> },
+    { label: t('nav.testConfig'), to: '/test-config', icon: <Settings size={18} /> },
+  ]
   
   return (
     <Paper elevation={0} variant="outlined" sx={{
@@ -656,7 +657,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenLicen
                   )}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, fontSize: '0.7rem' }}>
-                  <Tooltip title={apiStatus === 'ok' ? 'API ist online' : apiStatus === 'down' ? 'API ist offline' : 'API-Status wird geladen...'}>
+                  <Tooltip title={apiStatus === 'ok' ? t('status.apiOnline') : apiStatus === 'down' ? t('status.apiOffline') : t('status.apiLoading')}>
                     <Box
                       sx={{
                         display: 'flex',
@@ -783,20 +784,20 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenLicen
               <ListItemIcon>
                 <Terminal size={18} />
               </ListItemIcon>
-              <ListItemText primary="SSH Terminal" />
+              <ListItemText primary={t('footer.ssh')} />
               <Box sx={{ position: 'absolute', top: 6, right: 8, width: 18, height: 18, borderRadius: '50%', bgcolor: 'text.secondary', color: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}>
                 +
               </Box>
             </MenuItem>
             <MenuItem onClick={() => {
               setFooterMenuAnchor(null)
-              if (onOpenLicenseModal) onOpenLicenseModal()
+              if (onOpenSettingsModal) onOpenSettingsModal()
               if (onNavigate) onNavigate()
             }}>
               <ListItemIcon>
-                <BadgeCheck size={18} />
+                <Settings size={18} />
               </ListItemIcon>
-              <ListItemText primary="Lizenzstatus" />
+              <ListItemText primary={t('footer.settings')} />
             </MenuItem>
           </Menu>
         </Box>

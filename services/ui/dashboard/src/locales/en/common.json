@@ -1,0 +1,65 @@
+{
+  "app": {
+    "title": "TAP Dashboard",
+    "page": {
+      "home": "Home",
+      "captureDetail": "Test details",
+      "tests": "Start test",
+      "captures": "Captures",
+      "schedule": "Schedule",
+      "testConfigNew": "New test configuration",
+      "testConfig": "Test configuration"
+    },
+    "menu": {
+      "open": "Open menu"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "tests": "Start test",
+    "captures": "Captures",
+    "schedule": "Schedule",
+    "testConfig": "Test configuration"
+  },
+  "status": {
+    "apiOk": "API reachable",
+    "apiDown": "API unreachable",
+    "apiChecking": "Checking API...",
+    "apiOnline": "API is online",
+    "apiOffline": "API is offline",
+    "apiLoading": "API status is loading...",
+    "apiBase": "Base URL",
+    "apiBaseLocal": "local",
+    "lastError": "Last error",
+    "label": "Status"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "license": "License status",
+    "languageDescription": "Choose the language for the interface.",
+    "languageEnglish": "English",
+    "languageGerman": "German"
+  },
+  "license": {
+    "title": "License status",
+    "noData": "No status data available.",
+    "boardRevision": "Board revision",
+    "fpgaRevision": "FPGA revision",
+    "license": "License",
+    "licensePresent": "present",
+    "licenseAbsent": "not present",
+    "fpgaTemp": "FPGA temp.",
+    "fpgaId": "FPGA ID",
+    "rawData": "Raw data",
+    "copy": "Copy",
+    "copied": "Copied"
+  },
+  "common": {
+    "close": "Close"
+  },
+  "footer": {
+    "settings": "Settings",
+    "ssh": "SSH Terminal"
+  }
+}
