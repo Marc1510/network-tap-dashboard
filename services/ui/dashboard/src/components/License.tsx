@@ -1,8 +1,10 @@
 import { Box, Paper, Stack, Typography, Divider, Skeleton } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { getFpgaStatus, type FpgaStatus } from '../api/license'
+import { useTranslation } from 'react-i18next'
 
 export default function License({ apiBase }: { apiBase: string }) {
+  const { t } = useTranslation()
   const [fpga, setFpga] = useState<null | FpgaStatus | 'loading'>('loading')
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function License({ apiBase }: { apiBase: string }) {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3 }}>
       <Paper sx={{ p: 2, borderRadius: 2 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>FPGA / Board Status</Typography>
+        <Typography variant="h6" sx={{ mb: 2 }}>{t('license.fpgaBoardStatus')}</Typography>
         {fpga === 'loading' && (
           <Stack spacing={2}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1 }}>
@@ -41,30 +43,30 @@ export default function License({ apiBase }: { apiBase: string }) {
           </Stack>
         )}
         {fpga === null && (
-          <Typography variant="body2" color="text.secondary">Keine Statusdaten verfügbar.</Typography>
+          <Typography variant="body2" color="text.secondary">{t('license.noData')}</Typography>
         )}
         {fpga && fpga !== 'loading' && (
           <Stack spacing={2}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1 }}>
               <Box>
-                <Typography variant="body2"><b>Board-Revision:</b> {String(fpga['board_revision'] ?? '—')}</Typography>
+                <Typography variant="body2"><b>{t('license.boardRevision')}:</b> {String(fpga['board_revision'] ?? '—')}</Typography>
               </Box>
               <Box>
-                <Typography variant="body2"><b>FPGA-Revision:</b> {String(fpga['fpga_revision'] ?? '—')}</Typography>
+                <Typography variant="body2"><b>{t('license.fpgaRevision')}:</b> {String(fpga['fpga_revision'] ?? '—')}</Typography>
               </Box>
               <Box>
-                <Typography variant="body2"><b>Lizenz:</b> {fpga['license'] ? 'vorhanden' : 'nicht vorhanden'}</Typography>
+                <Typography variant="body2"><b>{t('license.license')}:</b> {fpga['license'] ? t('license.licensePresent') : t('license.licenseAbsent')}</Typography>
               </Box>
               <Box>
-                <Typography variant="body2"><b>FPGA-Temp.:</b> {fpga['fpga_temperature_celsius'] != null ? `${fpga['fpga_temperature_celsius']} °C` : '—'}</Typography>
+                <Typography variant="body2"><b>{t('license.fpgaTemp')}:</b> {fpga['fpga_temperature_celsius'] != null ? `${fpga['fpga_temperature_celsius']} °C` : '—'}</Typography>
               </Box>
               <Box sx={{ gridColumn: { xs: 'auto', md: 'span 2' } }}>
-                <Typography variant="body2"><b>FPGA-ID:</b> {String(fpga['fpga_id'] ?? '—')}</Typography>
+                <Typography variant="body2"><b>{t('license.fpgaId')}:</b> {String(fpga['fpga_id'] ?? '—')}</Typography>
               </Box>
             </Box>
 
             <Divider />
-            <Typography variant="subtitle2">Rohwerte</Typography>
+            <Typography variant="subtitle2">{t('license.rawData')}</Typography>
             <Stack spacing={0.5}>
               {Object.entries(fpga).map(([k,v]) => (
                 <Typography key={k} variant="caption" color="text.secondary">{k}: {String(v)}</Typography>

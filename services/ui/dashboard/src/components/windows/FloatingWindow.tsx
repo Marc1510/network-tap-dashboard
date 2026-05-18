@@ -3,6 +3,7 @@ import { Rnd } from 'react-rnd'
 import { Box, IconButton, Typography } from '@mui/material'
 import { Minus, X } from 'lucide-react'
 import type { WindowState } from './WindowsContext'
+import { useTranslation } from 'react-i18next'
 
 export type FloatingWindowProps = {
   window: WindowState
@@ -17,6 +18,7 @@ export type FloatingWindowProps = {
 const headerHeight = 36
 
 export const FloatingWindow: React.FC<FloatingWindowProps> = ({ window, onClose, onMinimize, onFocus, onChange, hidden, children }) => {
+  const { t } = useTranslation()
   const { id, title, x, y, width, height, z } = window
 
   const bounds = 'window'
@@ -45,7 +47,7 @@ export const FloatingWindow: React.FC<FloatingWindowProps> = ({ window, onClose,
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', borderRadius: 1.5, overflow: 'hidden', bgcolor: '#2a2a2a', border: '1px solid rgba(255,255,255,0.1)', boxShadow: 6 }}>
         <Box className={`win-header-${id}`} sx={{ height: headerHeight, display: 'flex', alignItems: 'center', px: 1, gap: 1, cursor: 'move', bgcolor: '#333', borderBottom: '1px solid rgba(255,255,255,0.1)' }} onMouseDown={() => onFocus(id)}>
-          <Typography variant="body2" sx={{ flex: 1, fontWeight: 600 }}>{title || 'Fenster'}</Typography>
+          <Typography variant="body2" sx={{ flex: 1, fontWeight: 600 }}>{title || t('windows.windowFallback')}</Typography>
           <IconButton size="small" onClick={() => onMinimize(id)} color="inherit">
             <Minus size={16} />
           </IconButton>

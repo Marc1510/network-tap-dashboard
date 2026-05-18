@@ -9,10 +9,12 @@ import { downloadBlob } from '../utils/blobDownload'
 import { useSeenCaptures } from '../hooks/useSeenCaptures'
 import { listCaptureSessions, bulkDownloadCaptures, deleteCaptureSessions, stopCapture, getCaptureSession } from '../api/captures'
 import type { CaptureSession } from '../types'
+import { useTranslation } from 'react-i18next'
 
 export type { CaptureSession }
 
 export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpenDetail: (captureId: string) => void }) {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const parseStatus = (v: string | null): 'all' | 'running' | 'stopped' => (v === 'running' || v === 'stopped' || v === 'all') ? v : 'all'
   const parseSort = (v: string | null): 'newest' | 'oldest' | 'size' => (v === 'oldest' || v === 'size') ? v : 'newest'
@@ -117,7 +119,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         fallbackFilename: 'captures_bulk.zip'
       })
     } catch (e) {
-      setErrorMessage('Download fehlgeschlagen')
+      setErrorMessage(t('captures.errors.downloadFailed'))
       setErrorDialogOpen(true)
     }
   }
@@ -136,11 +138,11 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
       })
       const errs = Object.keys(data.errors || {})
       if (errs.length > 0) {
-        setErrorMessage(`Einige Einträge konnten nicht gelöscht werden: ${errs.join(', ')}`)
+        setErrorMessage(t('captures.errors.partialDelete', { ids: errs.join(', ') }))
         setErrorDialogOpen(true)
       }
     } catch (e) {
-      setErrorMessage('Löschen fehlgeschlagen')
+      setErrorMessage(t('captures.errors.deleteFailed'))
       setErrorDialogOpen(true)
     }
   }
@@ -194,7 +196,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         } catch {}
       })()
     } catch (e) {
-      setErrorMessage('Beenden/Löschen fehlgeschlagen')
+      setErrorMessage(t('captures.errors.stopDeleteFailed'))
       setErrorDialogOpen(true)
     } finally {
       setConfirmLoading(false)
@@ -272,7 +274,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexDirection: 'column', gap: 1.5 }}>
           <TextField
             size="small"
-            placeholder="Suche..."
+            placeholder={t('common.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               const next = e.target.value
@@ -315,7 +317,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
             {selectedCount > 0 && (
               <Chip 
                 size="small" 
-                label={`${selectedCount} ausgewählt`}
+                label={t('captures.selectedCount', { count: selectedCount })}
                 sx={{
                   backgroundColor: 'primary.dark',
                   color: 'white',
@@ -323,7 +325,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
               />
             )}
             <Box sx={{ flexGrow: 1 }} />
-            <Tooltip title="Filter">
+            <Tooltip title={t('common.filters')}>
               <IconButton 
                 size="small" 
                 onClick={() => setFiltersOpen(true)}
@@ -347,7 +349,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
             </Tooltip>
             {selectedCount > 0 && (
               <>
-                <Tooltip title="Auswahl herunterladen">
+                <Tooltip title={t('captures.actions.downloadSelection')}>
                   <IconButton 
                     size="small" 
                     onClick={handleBulkDownload}
@@ -369,7 +371,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
                     <Download size={18} />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Auswahl löschen">
+                <Tooltip title={t('captures.actions.deleteSelection')}>
                   <IconButton 
                     size="small" 
                     onClick={requestBulkDelete}
@@ -400,8 +402,8 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', rowGap: 1, display: { xs: 'none', sm: 'flex' } }}>
           <TextField
             size="small"
-            label="Suche"
-            placeholder="Testname, Interface, Capture-ID..."
+            label={t('common.search')}
+            placeholder={t('captures.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               const next = e.target.value
@@ -429,7 +431,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
           {selectedCount > 0 && (
             <Chip 
               size="small" 
-              label={`${selectedCount} ausgewählt`}
+              label={t('captures.selectedCount', { count: selectedCount })}
               sx={{
                 backgroundColor: 'primary.dark',
                 color: 'white',
@@ -447,10 +449,10 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
               },
             }}
           >
-            <InputLabel id="status-filter-label">Status</InputLabel>
+            <InputLabel id="status-filter-label">{t('common.status')}</InputLabel>
             <Select
               labelId="status-filter-label"
-              label="Status"
+              label={t('common.status')}
               value={statusFilter}
               onChange={(e) => {
                 const v = e.target.value as 'all' | 'running' | 'stopped'
@@ -460,9 +462,9 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
                 commitFiltersToUrl(changed ? { status: v, page: 1 } : { status: v })
               }}
             >
-              <MenuItem value="all">Alle</MenuItem>
-              <MenuItem value="running">Laufend</MenuItem>
-              <MenuItem value="stopped">Beendet</MenuItem>
+              <MenuItem value="all">{t('common.all')}</MenuItem>
+              <MenuItem value="running">{t('common.running')}</MenuItem>
+              <MenuItem value="stopped">{t('common.stopped')}</MenuItem>
             </Select>
           </FormControl>
           <FormControl 
@@ -476,10 +478,10 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
               },
             }}
           >
-            <InputLabel id="sort-by-label">Sortierung</InputLabel>
+            <InputLabel id="sort-by-label">{t('common.sort')}</InputLabel>
             <Select
               labelId="sort-by-label"
-              label="Sortierung"
+              label={t('common.sort')}
               value={sortBy}
               onChange={(e) => {
                 const v = e.target.value as 'newest' | 'oldest' | 'size'
@@ -489,14 +491,14 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
                 commitFiltersToUrl(changed ? { sort: v, page: 1 } : { sort: v })
               }}
             >
-              <MenuItem value="newest">Neueste zuerst</MenuItem>
-              <MenuItem value="oldest">Älteste zuerst</MenuItem>
-              <MenuItem value="size">Gesamtgröße (absteigend)</MenuItem>
+              <MenuItem value="newest">{t('captures.sort.newest')}</MenuItem>
+              <MenuItem value="oldest">{t('captures.sort.oldest')}</MenuItem>
+              <MenuItem value="size">{t('captures.sort.size')}</MenuItem>
             </Select>
           </FormControl>
           {selectedCount > 0 && (
             <>
-              <Tooltip title="Auswahl herunterladen">
+              <Tooltip title={t('captures.actions.downloadSelection')}>
                 <IconButton 
                   size="small" 
                   onClick={handleBulkDownload}
@@ -518,7 +520,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
                   <Download size={18} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Auswahl löschen">
+              <Tooltip title={t('captures.actions.deleteSelection')}>
                 <IconButton 
                   size="small" 
                   onClick={requestBulkDelete}
@@ -575,16 +577,16 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
             }}
           />
         </Box>
-        <Typography variant="body2" fontWeight={600} color="text.secondary">Test</Typography>
-        <Typography variant="body2" fontWeight={600} color="text.secondary">Zeitraum</Typography>
-        <Typography variant="body2" fontWeight={600} color="text.secondary">Details</Typography>
+        <Typography variant="body2" fontWeight={600} color="text.secondary">{t('captures.table.test')}</Typography>
+        <Typography variant="body2" fontWeight={600} color="text.secondary">{t('captures.table.period')}</Typography>
+        <Typography variant="body2" fontWeight={600} color="text.secondary">{t('captures.table.details')}</Typography>
       </Box>
 
       <Box ref={listRef} onPointerDown={handleListPointerDown} onPointerUp={handleListPointerUp} sx={{ overflowX: { xs: 'auto', sm: 'visible' } }}>
         {search !== deferredSearch && (
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
             <CircularProgress size={18} thickness={4} />
-            <Typography variant="body2" color="text.secondary">Suche…</Typography>
+            <Typography variant="body2" color="text.secondary">{t('common.searching')}</Typography>
           </Stack>
         )}
         {allSessions === null && (
@@ -610,16 +612,16 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
           </Box>
         )}
          {allSessions && allSessions.length === 0 && (
-           <EmptyState message="Es wurden noch keine Tests durchgeführt." />
+           <EmptyState message={t('captures.empty')} />
          )}
         {sorted && sorted.length > 0 && paginatedSessions && paginatedSessions.length === 0 && (
-           <EmptyState message="Keine Ergebnisse für die gewählten Filter." />
+           <EmptyState message={t('captures.noResults')} />
          )}
         {paginatedSessions && paginatedSessions.map((s) => {
           const isNew = !seen.has(s.capture_id)
           const interfaceDisplay = s.interfaces && s.interfaces.length > 1 
             ? s.interfaces.join(', ') 
-            : (s.interface || '—')
+            : (s.interface || '\u2014')
           return (
           <Box key={s.capture_id} onClick={() => { markSeen(s.capture_id); onOpenDetail(s.capture_id) }} sx={{ display: 'grid', gridTemplateColumns: { xs: '24px 1fr', sm: '24px 1fr 1fr 1fr' }, alignItems: 'center', gap: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider', cursor: 'pointer', '&:hover': { backgroundColor: 'action.hover' } }}>
             <Box onClick={(e) => { e.stopPropagation() }}>
@@ -632,21 +634,21 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
               </Typography>
               <Chip size="small" label={s.capture_id.substring(0, 8)} variant="outlined" />
               {s.interfaces && s.interfaces.length > 1 && (
-                <Chip size="small" label={`${s.interfaces.length} Interfaces`} variant="outlined" color="info" />
+                <Chip size="small" label={t('captures.interfacesCount', { count: s.interfaces.length })} variant="outlined" color="info" />
               )}
               {isNew && (
-                <Chip size="small" color="primary" label="NEU" sx={{ fontWeight: 700 }} />
+                <Chip size="small" color="primary" label={t('common.new')} sx={{ fontWeight: 700 }} />
               )}
             </Stack>
             <Stack sx={{ display: { xs: 'none', sm: 'flex' } }}>
-              <Typography variant="body2">Start: {formatUtc(s.start_utc)}</Typography>
-              <Typography variant="body2">Stop: {formatUtc(s.stop_utc)}</Typography>
+              <Typography variant="body2">{t('common.start')}: {formatUtc(s.start_utc)}</Typography>
+              <Typography variant="body2">{t('common.stop')}: {formatUtc(s.stop_utc)}</Typography>
             </Stack>
             <Stack sx={{ display: { xs: 'none', sm: 'flex' }, minWidth: 0 }}>
               <Typography variant="caption" color="text.secondary" noWrap sx={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {s.interfaces && s.interfaces.length > 1 ? `Interfaces: ${s.interfaces.join(', ')}` : `Datei: ${s.filename_base || '—'}`}
+                {s.interfaces && s.interfaces.length > 1 ? t('captures.interfacesLabel', { names: s.interfaces.join(', ') }) : t('captures.fileLabel', { name: s.filename_base || '\u2014' })}
               </Typography>
-              <Typography variant="caption" color="text.secondary">Ring: {s.ring_file_count} × {s.ring_file_size_mb}MB</Typography>
+              <Typography variant="caption" color="text.secondary">{t('captures.ringLabel', { count: s.ring_file_count, size: s.ring_file_size_mb })}</Typography>
             </Stack>
           </Box>
         )})}
@@ -670,7 +672,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
 
       {sorted && sorted.length > 0 && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 1 }}>
-          Zeige {((page - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(page * ITEMS_PER_PAGE, sorted.length)} von {sorted.length} Tests
+          {t('common.showingRange', { from: ((page - 1) * ITEMS_PER_PAGE) + 1, to: Math.min(page * ITEMS_PER_PAGE, sorted.length), total: sorted.length })}
         </Typography>
       )}
 
@@ -678,10 +680,10 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={confirmBulkDelete}
-        title="Löschen bestätigen"
-        message={`Die ausgewählten ${selectedCount} Testeinträge werden endgültig gelöscht.\n\nBeim Löschen werden alle zugehörigen Dateien entfernt, einschließlich PCAP-Ringdateien und Metadaten.`}
-        confirmText="Ja, endgültig löschen"
-        cancelText="Abbrechen"
+        title={t('captures.confirmDeleteTitle')}
+        message={t('captures.confirmDeleteMessage', { count: selectedCount })}
+        confirmText={t('captures.confirmDeleteConfirm')}
+        cancelText={t('common.cancel')}
         variant="warning"
       />
 
@@ -690,24 +692,24 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         open={confirmStopDeleteOpen}
         onClose={() => setConfirmStopDeleteOpen(false)}
         onConfirm={confirmStopAndDelete}
-        title="Laufende Tests beenden und löschen?"
-        message={`Mindestens einer der ausgewählten Tests läuft noch.\n\nMöchten Sie den/die laufenden Test(s) jetzt beenden und anschließend löschen?`}
-        confirmText="Ja, beenden und löschen"
-        cancelText="Abbrechen"
+        title={t('captures.confirmStopDeleteTitle')}
+        message={t('captures.confirmStopDeleteMessage')}
+        confirmText={t('captures.confirmStopDeleteConfirm')}
+        cancelText={t('common.cancel')}
         variant="warning"
         loading={confirmLoading}
       />
 
       {/* Mobile Filter-Dialog */}
       <Dialog open={filtersOpen} onClose={() => setFiltersOpen(false)} fullScreen>
-        <DialogTitle>Filter</DialogTitle>
+        <DialogTitle>{t('common.filters')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl size="small" fullWidth>
-              <InputLabel id="status-filter-label-xs">Status</InputLabel>
+              <InputLabel id="status-filter-label-xs">{t('common.status')}</InputLabel>
               <Select
                 labelId="status-filter-label-xs"
-                label="Status"
+                label={t('common.status')}
                 value={statusFilter}
                 onChange={(e) => {
                   const v = e.target.value as 'all' | 'running' | 'stopped'
@@ -717,16 +719,16 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
                   commitFiltersToUrl(changed ? { status: v, page: 1 } : { status: v })
                 }}
               >
-                <MenuItem value="all">Alle</MenuItem>
-                <MenuItem value="running">Laufend</MenuItem>
-                <MenuItem value="stopped">Beendet</MenuItem>
+                <MenuItem value="all">{t('common.all')}</MenuItem>
+                <MenuItem value="running">{t('common.running')}</MenuItem>
+                <MenuItem value="stopped">{t('common.stopped')}</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" fullWidth>
-              <InputLabel id="sort-by-label-xs">Sortierung</InputLabel>
+              <InputLabel id="sort-by-label-xs">{t('common.sort')}</InputLabel>
               <Select
                 labelId="sort-by-label-xs"
-                label="Sortierung"
+                label={t('common.sort')}
                 value={sortBy}
                 onChange={(e) => {
                   const v = e.target.value as 'newest' | 'oldest' | 'size'
@@ -736,15 +738,15 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
                   commitFiltersToUrl(changed ? { sort: v, page: 1 } : { sort: v })
                 }}
               >
-                <MenuItem value="newest">Neueste zuerst</MenuItem>
-                <MenuItem value="oldest">Älteste zuerst</MenuItem>
-                <MenuItem value="size">Gesamtgröße (absteigend)</MenuItem>
+                <MenuItem value="newest">{t('captures.sort.newest')}</MenuItem>
+                <MenuItem value="oldest">{t('captures.sort.oldest')}</MenuItem>
+                <MenuItem value="size">{t('captures.sort.size')}</MenuItem>
               </Select>
             </FormControl>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFiltersOpen(false)} variant="contained">Fertig</Button>
+          <Button onClick={() => setFiltersOpen(false)} variant="contained">{t('common.done')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -753,9 +755,9 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         open={errorDialogOpen}
         onClose={() => setErrorDialogOpen(false)}
         onConfirm={() => setErrorDialogOpen(false)}
-        title="Fehler"
+        title={t('common.error')}
         message={errorMessage}
-        confirmText="OK"
+        confirmText={t('common.ok')}
         cancelText=""
         variant="error"
       />

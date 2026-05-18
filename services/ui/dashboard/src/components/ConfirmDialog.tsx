@@ -1,6 +1,7 @@
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, TextField } from '@mui/material'
 import { X } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -24,14 +25,19 @@ export default function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Bestätigen',
-  cancelText = 'Abbrechen',
+  confirmText,
+  cancelText,
   loading = false,
   inputMode = false,
-  inputLabel = 'Eingabe',
+  inputLabel,
   inputValue = '',
   inputPlaceholder = ''
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
+  const resolvedConfirmText = confirmText ?? t('common.confirm')
+  const resolvedCancelText = cancelText ?? t('common.cancel')
+  const showCancel = cancelText !== ''
+  const resolvedInputLabel = inputLabel ?? t('common.input')
   const [inputText, setInputText] = useState('')
 
   useEffect(() => {
@@ -104,7 +110,7 @@ export default function ConfirmDialog({
         {inputMode && (
           <TextField
             fullWidth
-            label={inputLabel}
+            label={resolvedInputLabel}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={inputPlaceholder}
@@ -121,7 +127,7 @@ export default function ConfirmDialog({
       </DialogContent>
       
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        {cancelText && (
+        {showCancel && (
           <Button
             onClick={onClose}
             variant="outlined"
@@ -134,7 +140,7 @@ export default function ConfirmDialog({
               fontWeight: 500
             }}
           >
-            {cancelText}
+            {resolvedCancelText}
           </Button>
         )}
         <Button
@@ -149,7 +155,7 @@ export default function ConfirmDialog({
             fontWeight: 500
           }}
         >
-          {confirmText}
+          {resolvedConfirmText}
         </Button>
       </DialogActions>
     </Dialog>

@@ -5,18 +5,19 @@ import { useNavigate } from 'react-router-dom'
 import { listSchedules, type Schedule } from '../api/schedules'
 import { useServerTime } from '../hooks/useServerTime'
 import { parseUtcString } from '../utils/dateUtils'
+import { useTranslation } from 'react-i18next'
 
 interface UpcomingScheduleProps {
   apiBase: string
 }
 
-const formatDateTime = (dateStr: string | null | undefined): string => {
+const formatDateTime = (dateStr: string | null | undefined, locale: string): string => {
   if (!dateStr) return '—'
   
   const date = parseUtcString(dateStr)
   if (!date) return dateStr
   
-  return date.toLocaleString('de-DE', {
+  return date.toLocaleString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -25,7 +26,7 @@ const formatDateTime = (dateStr: string | null | undefined): string => {
   })
 }
 
-const getTimeUntil = (dateStr: string | null | undefined, serverTimeNow: number): string => {
+const getTimeUntil = (dateStr: string | null | undefined, serverTimeNow: number, t: (key: string, options?: any) => string): string => {
   if (!dateStr) return '—'
   
   const targetDate = parseUtcString(dateStr)
@@ -34,7 +35,7 @@ const getTimeUntil = (dateStr: string | null | undefined, serverTimeNow: number)
   const diff = targetDate.getTime() - serverTimeNow
   
   if (diff <= 0) {
-    return 'Bald'
+    return t('upcomingSchedule.soon')
   }
   
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -42,15 +43,15 @@ const getTimeUntil = (dateStr: string | null | undefined, serverTimeNow: number)
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
   
   if (days > 0) {
-    return `${days} Tag${days > 1 ? 'e' : ''} ${hours}h`
+    return t('upcomingSchedule.inDays', { days, hours })
   } else if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  } else {
-    return `${minutes} Min`
+    return t('upcomingSchedule.inHours', { hours, minutes })
   }
+  return t('upcomingSchedule.inMinutes', { minutes })
 }
 
 export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
+  const { t, i18n } = useTranslation()
   const [schedules, setSchedules] = useState<Schedule[] | null>(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -110,7 +111,7 @@ export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <CalendarClock size={20} color="white" />
-            <Typography variant="h6" fontWeight="600">Geplante Tests</Typography>
+            <Typography variant="h6" fontWeight="600">{t('upcomingSchedule.title')}</Typography>
           </Stack>
           <Button 
             variant="contained"
@@ -151,7 +152,7 @@ export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
                   fontSize: '0.8rem',
                 }}
               >
-                Alle anzeigen
+                {t('common.viewAll')}
               </Typography>
             </Stack>
           </Button>
@@ -203,16 +204,18 @@ export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
           }}>
             <CalendarClock size={48} color="#9e9e9e" strokeWidth={1.5} />
             <Typography variant="h6" color="text.disabled" fontWeight="500">
-              Keine Tests geplant
+              {t('upcomingSchedule.empty')}
             </Typography>
           </Box>
         )}
         {!loading && upcomingSchedules.length > 0 && (
           <Stack spacing={1.5}>
             {upcomingSchedules.map((schedule) => {
-              const ruleType = schedule.rule.type === 'once' ? 'Einmalig' : schedule.rule.type === 'daily' ? 'Täglich' : 'Wöchentlich'
-              const timeUntil = getTimeUntil(schedule.nextRunUtc, nowMs)
-              const isSoon = timeUntil !== 'Bald' && timeUntil.split(' ')[0] !== undefined && parseInt(timeUntil.split(' ')[0]) <= 60
+              const ruleType = schedule.rule.type === 'once' ? t('scheduleDialog.rule.once') : schedule.rule.type === 'daily' ? t('scheduleDialog.rule.daily') : t('scheduleDialog.rule.weekly')
+              const timeUntil = getTimeUntil(schedule.nextRunUtc, nowMs, t)
+              const target = schedule.nextRunUtc ? parseUtcString(schedule.nextRunUtc) : null
+              const diffMin = target ? Math.floor((target.getTime() - nowMs) / (1000 * 60)) : null
+              const isSoon = diffMin != null && diffMin > 0 && diffMin <= 60
               
               return (
                 <Box
@@ -239,7 +242,7 @@ export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
                           }}
                         />
                         <Typography variant="body2" fontWeight="600" color="white">
-                          {schedule.title || 'Geplanter Test'}
+                          {schedule.title || t('upcomingSchedule.defaultTitle')}
                         </Typography>
                         <Chip
                           size="small"
@@ -258,12 +261,12 @@ export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <Clock size={12} color="#9e9e9e" />
                           <Typography variant="caption" color="text.secondary">
-                            {formatDateTime(schedule.nextRunUtc)}
+                            {formatDateTime(schedule.nextRunUtc, i18n.language)}
                           </Typography>
                         </Stack>
                         {schedule.nextRunUtc && (
                           <Typography variant="body2" fontWeight="600" color={isSoon ? 'warning.main' : 'success.main'}>
-                            in {timeUntil}
+                            {t('upcomingSchedule.inPrefix', { time: timeUntil })}
                           </Typography>
                         )}
                       </Stack>
@@ -295,7 +298,7 @@ export default function UpcomingSchedule({ apiBase }: UpcomingScheduleProps) {
             
             {upcomingSchedules.length < (schedules?.length || 0) && (
               <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ mt: 1 }}>
-                +{(schedules?.length || 0) - upcomingSchedules.length} weitere geplante Test(s)
+                {t('upcomingSchedule.more', { count: (schedules?.length || 0) - upcomingSchedules.length })}
               </Typography>
             )}
           </Stack>

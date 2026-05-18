@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { getSystemResources } from '../api/system'
 import { getFpgaStatus } from '../api/license'
 import type { SystemResources } from '../types'
+import { useTranslation } from 'react-i18next'
 
 interface SystemResourcesDropdownProps {
   apiBase: string
 }
 
 export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDropdownProps) {
+  const { t, i18n } = useTranslation()
   const [systemResources, setSystemResources] = useState<SystemResources | null>(null)
   const [fpgaTemp, setFpgaTemp] = useState<number | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -19,10 +21,10 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
   const formatServerDateTime = (timestamp: number) => {
     const ms = timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp
     const date = new Date(ms)
-    const dateStr = new Intl.DateTimeFormat('de-DE', {
+    const dateStr = new Intl.DateTimeFormat(i18n.language, {
       year: 'numeric', month: '2-digit', day: '2-digit'
     }).format(date)
-    const timeStr = new Intl.DateTimeFormat('de-DE', {
+    const timeStr = new Intl.DateTimeFormat(i18n.language, {
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     }).format(date)
     return `${dateStr} ${timeStr}`
@@ -114,7 +116,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
             backgroundColor: 'rgba(255,255,255,0.1)'
           }
         }}
-        title="Systemressourcen anzeigen"
+        title={t('systemResources.view')}
       >
         <Monitor size={18} />
       </Button>
@@ -138,12 +140,12 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Monitor size={20} color="white" />
-              <Typography variant="h6" fontWeight="600">Systemressourcen</Typography>
+              <Typography variant="h6" fontWeight="600">{t('systemResources.title')}</Typography>
             </Stack>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: systemResources ? 'success.main' : 'warning.main' }} />
               <Typography variant="caption" color="text.secondary">
-                {systemResources ? 'Live' : 'Lädt...'}
+                {systemResources ? t('common.live') : t('common.loading')}
               </Typography>
             </Box>
           </Stack>
@@ -190,7 +192,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                     <Cpu size={16} />
-                    <Typography variant="body2" fontWeight="medium">CPU</Typography>
+                    <Typography variant="body2" fontWeight="medium">{t('system.cpu')}</Typography>
                     <Typography variant="body2" color="text.secondary">
                       {systemResources.cpu.percent}%
                     </Typography>
@@ -198,7 +200,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
                       <Stack direction="row" alignItems="center" spacing={0.5}>
                         <Thermometer size={14} />
                         <Typography variant="caption" color="text.secondary">
-                          {systemResources.cpu.temperature}°C
+                          {systemResources.cpu.temperature}\u00b0C
                         </Typography>
                       </Stack>
                     )}
@@ -207,7 +209,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
                     <Typography variant="caption" color="text.secondary">/</Typography>
                     <Thermometer size={14} />
                     <Typography variant="caption" color="text.secondary">
-                      FPGA {fpgaTemp}°C
+                      {t('systemResources.fpgaShort')} {fpgaTemp}\u00b0C
                     </Typography>
                   </Stack>
                 )}
@@ -231,7 +233,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                     <MemoryStick size={16} />
-                    <Typography variant="body2" fontWeight="medium">RAM</Typography>
+                    <Typography variant="body2" fontWeight="medium">{t('system.ram')}</Typography>
                     <Typography variant="body2" color="text.secondary">
                       {systemResources.memory.percent}%
                     </Typography>
@@ -258,7 +260,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                     <HardDrive size={16} />
-                    <Typography variant="body2" fontWeight="medium">Speicher</Typography>
+                    <Typography variant="body2" fontWeight="medium">{t('systemResources.storage')}</Typography>
                     <Typography variant="body2" color="text.secondary">
                       {systemResources.disk.percent}%
                     </Typography>
@@ -286,7 +288,7 @@ export default function SystemResourcesDropdown({ apiBase }: SystemResourcesDrop
               <>
                 <Divider sx={{ my: 1.5 }} />
                 <Typography variant="caption" color="text.secondary">
-                  Serverzeit: {serverTimeMs != null ? formatServerDateTime(serverTimeMs) : formatServerDateTime(systemResources.timestamp)}
+                  {t('systemResources.serverTime')}: {serverTimeMs != null ? formatServerDateTime(serverTimeMs) : formatServerDateTime(systemResources.timestamp)}
                 </Typography>
               </>
             )}

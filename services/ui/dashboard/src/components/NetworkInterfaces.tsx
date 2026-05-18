@@ -3,6 +3,7 @@ import { Network, TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucid
 import { useEffect, useState } from 'react'
 import { formatFileSize } from '../utils/formatUtils'
 import { getNetworkInterfacesWithStats } from '../api/system'
+import { useTranslation } from 'react-i18next'
 
 interface NetworkInterface {
   name: string
@@ -40,6 +41,7 @@ const getSpeedColor = (mbps: number): string => {
 }
 
 export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
+  const { t } = useTranslation()
   const [interfaces, setInterfaces] = useState<NetworkInterface[] | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -89,7 +91,7 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
       <Box sx={{ p: 2 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Network size={20} color="white" />
-          <Typography variant="h6" fontWeight="600">Netzwerk-Interfaces</Typography>
+          <Typography variant="h6" fontWeight="600">{t('network.title')}</Typography>
         </Stack>
       </Box>
       <Box sx={{ px: 2, pb: 2 }}>
@@ -157,7 +159,7 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
           }}>
             <Network size={48} color="#9e9e9e" strokeWidth={1.5} />
             <Typography variant="body2" color="text.disabled" fontWeight="500">
-              Keine physischen Interfaces gefunden
+              {t('network.none')}
             </Typography>
           </Box>
         )}
@@ -203,7 +205,7 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
                       )}
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
-                      {iface.is_up ? 'UP' : 'DOWN'}
+                      {iface.is_up ? t('network.statusUp') : t('network.statusDown')}
                     </Typography>
                   </Stack>
 
@@ -215,7 +217,7 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <TrendingUp size={12} color="#9e9e9e" />
                           <Typography variant="caption" color="text.secondary" fontWeight="500">
-                            Upload
+                            {t('network.upload')}
                           </Typography>
                         </Stack>
                         <Typography variant="caption" fontWeight="600" sx={{ color: getSpeedColor(iface.rate_sent_mbps) }}>
@@ -243,7 +245,7 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <TrendingDown size={12} color="#9e9e9e" />
                           <Typography variant="caption" color="text.secondary" fontWeight="500">
-                            Download
+                            {t('network.download')}
                           </Typography>
                         </Stack>
                         <Typography variant="caption" fontWeight="600" sx={{ color: getSpeedColor(iface.rate_recv_mbps) }}>
@@ -268,7 +270,7 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
 
                   {/* Details: Gesamt Traffic */}
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Gesamt: ↑ {formatFileSize(iface.total_bytes_sent)} / ↓ {formatFileSize(iface.total_bytes_recv)}
+                    {t('network.total')}: ↑ {formatFileSize(iface.total_bytes_sent)} / ↓ {formatFileSize(iface.total_bytes_recv)}
                   </Typography>
                 </Box>
               )
@@ -293,14 +295,14 @@ export default function NetworkInterfaces({ apiBase }: NetworkInterfacesProps) {
                     <>
                       <ChevronUp size={16} />
                       <Typography variant="caption" sx={{ ml: 0.5 }}>
-                        Weniger anzeigen
+                        {t('network.less')}
                       </Typography>
                     </>
                   ) : (
                     <>
                       <ChevronDown size={16} />
                       <Typography variant="caption" sx={{ ml: 0.5 }}>
-                        +{sortedInterfaces.length - 3} weitere Interface(s)
+                        {t('network.more', { count: sortedInterfaces.length - 3 })}
                       </Typography>
                     </>
                   )}

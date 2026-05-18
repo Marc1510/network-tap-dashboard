@@ -3,6 +3,7 @@ import { Network, TrendingUp, TrendingDown } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatFileSize } from '../utils/formatUtils'
 import { getNetworkInterfacesWithStats } from '../api/system'
+import { useTranslation } from 'react-i18next'
 
 type NetAddr = {
   family: string
@@ -44,6 +45,7 @@ const getSpeedColor = (mbps: number): string => {
 }
 
 export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, running }: AffectedInterfacesProps) {
+  const { t } = useTranslation()
   const [interfaces, setInterfaces] = useState<NetIf[] | null>(null)
   const [baselines, setBaselines] = useState<Record<string, { sent: number; recv: number }>>({})
   const [frozen, setFrozen] = useState<Record<string, { sent: number; recv: number }> | null>(null)
@@ -148,12 +150,12 @@ export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, ru
       <Box sx={{ p: 2 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Network size={18} color="white" />
-          <Typography variant="subtitle1" fontWeight={600}>Betroffene Netzwerk-Interfaces</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>{t('affectedInterfaces.title')}</Typography>
         </Stack>
       </Box>
       <Box sx={{ px: 2, pb: 2 }}>
         {wanted.length === 0 && (
-          <Typography variant="body2" color="text.secondary">Kein Profil gewählt oder keine Interfaces im Profil.</Typography>
+          <Typography variant="body2" color="text.secondary">{t('affectedInterfaces.noneSelected')}</Typography>
         )}
 
         {wanted.length > 0 && !interfaces && (
@@ -197,7 +199,7 @@ export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, ru
         )}
 
         {wanted.length > 0 && interfaces && filtered.length === 0 && (
-          <Typography variant="body2" color="text.secondary">Die ausgewählten Interfaces wurden auf diesem System nicht gefunden.</Typography>
+          <Typography variant="body2" color="text.secondary">{t('affectedInterfaces.notFound')}</Typography>
         )}
 
         {filtered.length > 0 && (
@@ -215,7 +217,7 @@ export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, ru
                         <Typography variant="caption" color="text.secondary">{ip.address}</Typography>
                       )}
                     </Stack>
-                    <Typography variant="caption" color="text.secondary">{iface.is_up ? 'UP' : 'DOWN'}</Typography>
+                    <Typography variant="caption" color="text.secondary">{iface.is_up ? t('network.statusUp') : t('network.statusDown')}</Typography>
                   </Stack>
 
                   <Stack direction="row" spacing={2}>
@@ -223,7 +225,7 @@ export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, ru
                       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <TrendingUp size={12} color="#9e9e9e" />
-                          <Typography variant="caption" color="text.secondary" fontWeight={500}>Upload</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={500}>{t('network.upload')}</Typography>
                         </Stack>
                         <Typography variant="caption" fontWeight={600} sx={{ color: getSpeedColor(iface.rate_sent_mbps) }}>{formatSpeed(iface.rate_sent_mbps)}</Typography>
                       </Stack>
@@ -233,7 +235,7 @@ export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, ru
                       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <TrendingDown size={12} color="#9e9e9e" />
-                          <Typography variant="caption" color="text.secondary" fontWeight={500}>Download</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={500}>{t('network.download')}</Typography>
                         </Stack>
                         <Typography variant="caption" fontWeight={600} sx={{ color: getSpeedColor(iface.rate_recv_mbps) }}>{formatSpeed(iface.rate_recv_mbps)}</Typography>
                       </Stack>
@@ -242,7 +244,7 @@ export default function AffectedInterfaces({ apiBase, interfaceNames, runKey, ru
                   </Stack>
 
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Seit Teststart: ↑ {formatFileSize(d.sent)} / ↓ {formatFileSize(d.recv)}
+                    {t('affectedInterfaces.sinceStart', { sent: formatFileSize(d.sent), recv: formatFileSize(d.recv) })}
                   </Typography>
                 </Box>
               )

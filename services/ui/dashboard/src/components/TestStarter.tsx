@@ -39,14 +39,15 @@ import { listCaptureSessions } from '../api/captures'
 import ConfirmDialog from './ConfirmDialog'
 import AffectedInterfaces from './AffectedInterfaces'
 import { formatUtc, toTime } from '../utils/dateUtils'
+import { useTranslation } from 'react-i18next'
 
-const STATUS_LABEL: Record<TestTabStatus, string> = {
-  idle: 'Bereit',
-  starting: 'Wird gestartet',
-  running: 'Läuft',
-  completed: 'Abgeschlossen',
-  failed: 'Fehlgeschlagen',
-  cancelled: 'Abgebrochen',
+const STATUS_LABEL_KEYS: Record<TestTabStatus, string> = {
+  idle: 'testStarter.status.idle',
+  starting: 'testStarter.status.starting',
+  running: 'testStarter.status.running',
+  completed: 'testStarter.status.completed',
+  failed: 'testStarter.status.failed',
+  cancelled: 'testStarter.status.cancelled',
 }
 
 const STATUS_ICON: Record<TestTabStatus, LucideIcon> = {
@@ -189,6 +190,7 @@ type ProfilesState = { status: 'loading' | 'ready' | 'error'; data: TestProfile[
 type WsStatus = 'connecting' | 'connected' | 'disconnected'
 
 export default function TestStarter({ apiBase }: TestStarterProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [profilesState, setProfilesState] = useState<ProfilesState>({ status: 'loading', data: [] })
   const [tabsState, dispatch] = useReducer(tabsReducer, initialTabsState)
@@ -336,7 +338,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
       } catch (err) {
         if (cancelled) return
         setProfilesState((prev) => ({ ...prev, status: 'error' }))
-        setError('Initiale Daten konnten nicht geladen werden.')
+        setError(t('testStarter.errors.initialLoad'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -400,7 +402,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
           const message: TestTabEvent = JSON.parse(event.data)
           handleSocketEvent(message)
         } catch (err) {
-          console.warn('Unbekannte WebSocket-Nachricht', err)
+          console.warn(t('testStarter.errors.wsUnknown'), err)
         }
       }
       socket.onerror = () => {
@@ -460,7 +462,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
         const res = await getTestTabLogs(apiBase, tabId, after)
         dispatch({ type: 'log_batch', tabId, entries: res.entries })
       } catch (err) {
-        console.warn('Fehler beim Nachladen von Logs', err)
+        console.warn(t('testStarter.errors.logsFetch'), err)
       } finally {
         fetchingLogsRef.current[tabId] = false
       }
@@ -639,7 +641,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     // Erstelle temporären Tab für optimistische UI-Aktualisierung
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const tabCount = tabsState.order.length + 1 // +1 für den neuen Tab
-    const title = `Neuer Test #${tabCount}`
+    const title = t('testStarter.newTestTitle', { number: tabCount })
     const tempTab: TestTab = {
       id: tempId,
       title,
@@ -676,7 +678,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     } catch (err) {
       // Entferne temporären Tab bei Fehler
       dispatch({ type: 'delete', tabId: tempId })
-      setError('Neuer Tab konnte nicht erstellt werden.')
+      setError(t('testStarter.errors.createTab'))
       // Setze aktiven Tab zurück auf den ersten verfügbaren Tab
       const remainingTabs = tabsStateRef.current.order.filter((id) => id !== tempId)
       const fallback = remainingTabs.find((id) => !isTemporaryTab(id)) ?? remainingTabs[0] ?? null
@@ -711,7 +713,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     try {
       await updateTestTab(apiBase, tab.id, { title: newTitle })
     } catch (err) {
-      setError('Tab konnte nicht umbenannt werden.')
+      setError(t('testStarter.errors.renameTab'))
       // Revert bei Fehler
       dispatch({ type: 'upsert', tab })
     } finally {
@@ -735,7 +737,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     try {
       await updateTestTab(apiBase, tab.id, { profileId })
     } catch (err) {
-      setError('Profil konnte nicht zugewiesen werden.')
+      setError(t('testStarter.errors.assignProfile'))
       const revertTab: TestTab = {
         ...current,
         profileId: previousProfileId,
@@ -749,7 +751,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
 
   const handleDeleteTab = (tab: TestTab) => {
     if (tab.status === 'running' || tab.status === 'starting') {
-      setError('Laufende Tests müssen zuerst gestoppt werden.')
+      setError(t('testStarter.errors.stopRunningFirst'))
       return
     }
     setDeleteDialog({ open: true, tab })
@@ -770,7 +772,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
         setActiveTab(nextTabId, { syncUrl })
       }
     } catch (err) {
-      setError('Tab konnte nicht gelöscht werden.')
+      setError(t('testStarter.errors.deleteTab'))
     } finally {
       setTabPending(tab.id, false)
     }
@@ -778,7 +780,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
 
   const handleStart = async (tab: TestTab) => {
     if (!tab.profileId) {
-      setError('Bitte zuerst ein Testprofil auswählen.')
+      setError(t('testStarter.errors.selectProfile'))
       return
     }
     const current = tabsStateRef.current.tabs[tab.id] ?? tab
@@ -795,7 +797,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
       // Nach Start kurzzeitig pollen, bis Status nicht mehr "starting" ist
       startPollingForStatus(tab.id, 'start')
     } catch (err) {
-      setError('Test konnte nicht gestartet werden.')
+      setError(t('testStarter.errors.startTest'))
       // Revert bei Fehler
       dispatch({ type: 'upsert', tab: current })
     } finally {
@@ -857,7 +859,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
       // Nach Stop pollen, bis Status nicht mehr running/starting ist
       startPollingForStatus(tab.id, 'stop')
     } catch (err) {
-      setError('Test konnte nicht gestoppt werden.')
+      setError(t('testStarter.errors.stopTest'))
       // Revert bei Fehler
       dispatch({ type: 'upsert', tab: current })
     } finally {
@@ -913,7 +915,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
           <Stack direction="row" spacing={1} alignItems="center">
             <CircularProgress size={18} thickness={5} />
             <Typography variant="body2" color="text.secondary">
-              Lade Test-Tabs…
+              {t('testStarter.loadingTabs')}
             </Typography>
           </Stack>
         )}
@@ -922,7 +924,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
           <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
             <Stack spacing={2} alignItems="center">
               <Typography variant="body2" color="text.secondary">
-                Noch keine Tests vorhanden.
+                {t('testStarter.empty')}
               </Typography>
               <Button
                 variant="contained"
@@ -934,10 +936,10 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                 {creating ? (
                   <>
                     <CircularProgress size={16} thickness={3} sx={{ mr: 1 }} />
-                    Erstelle...
+                    {t('common.creating')}
                   </>
                 ) : (
-                  'Test erstellen'
+                  t('testStarter.createTest')
                 )}
               </Button>
             </Stack>
@@ -1024,7 +1026,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                     >
                       {tab.title}
                     </Typography>
-                    <Tooltip title={STATUS_LABEL[tab.status]} placement="top">
+                    <Tooltip title={t(STATUS_LABEL_KEYS[tab.status])} placement="top">
                       <Box
                         component="span"
                         sx={{
@@ -1044,7 +1046,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                     <IconButton
                       className="tab-close"
                       size="small"
-                      title="Test schließen"
+                      title={t('testStarter.closeTab')}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDeleteTab(tab)
@@ -1085,7 +1087,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                 <IconButton
                   onClick={() => handleCreateTab()}
                   disabled={creating}
-                  title="Neuer Test"
+                  title={t('testStarter.newTest')}
                   sx={{
                     width: { xs: 34, sm: 36 },
                     height: { xs: 34, sm: 36 },
@@ -1160,7 +1162,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                             boxShadow: '0 2px 10px rgba(255,11,85,0.25)'
                           }}
                         >
-                          Aufzeichnung öffnen
+                          {t('testStarter.openCapture')}
                         </Button>
                       }
                       sx={{
@@ -1177,10 +1179,10 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                       }}
                     >
                       <AlertTitle sx={{ color: '#ff0b55', fontWeight: 700, letterSpacing: 0.2 }}>
-                        Test abgeschlossen
+                        {t('testStarter.completedTitle')}
                       </AlertTitle>
                       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.92)' }}>
-                        Die Aufzeichnung ist verfügbar.
+                        {t('testStarter.completedMessage')}
                       </Typography>
                     </Alert>
                   )}
@@ -1226,14 +1228,14 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                         }} 
                         disabled={profilesState.status === 'loading' || isTabPending(activeTab.id)}
                       >
-                        <InputLabel>Testprofil</InputLabel>
+                        <InputLabel>{t('testStarter.profileLabel')}</InputLabel>
                         <Select
-                          label="Testprofil"
+                          label={t('testStarter.profileLabel')}
                           value={activeTab.profileId ?? ''}
                           onChange={(event) => handleSelectProfile(activeTab, String(event.target.value))}
                         >
                           <MenuItem value="">
-                            <em>Auswählen…</em>
+                            <em>{t('common.select')}</em>
                           </MenuItem>
                           {sortedProfiles.map((profile) => (
                             <MenuItem key={profile.id} value={profile.id}>
@@ -1282,7 +1284,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                             }
                           }}
                         >
-                          Starten
+                          {t('common.start')}
                         </Button>
                         <Button
                           size="small"
@@ -1304,7 +1306,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                             }
                           }}
                         >
-                          Stoppen
+                          {t('common.stop')}
                         </Button>
                       </Stack>
                     </Paper>
@@ -1354,7 +1356,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                                 fontWeight: 500
                               }}
                             >
-                              Verbleibend
+                              {t('testStarter.remaining')}
                             </Typography>
                             <Typography 
                               variant="body2" 
@@ -1388,7 +1390,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                       minWidth: { xs: '100%', md: 'auto' },
                     }}>
-                      <Tooltip title="Test umbenennen" placement="top">
+                      <Tooltip title={t('testStarter.renameTab')} placement="top">
                         <span>
                           <IconButton 
                             size="medium" 
@@ -1443,7 +1445,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                         }
                         label={
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            Auto-Scroll
+                            {t('testStarter.autoScroll')}
                           </Typography>
                         }
                         sx={{ m: 0 }}
@@ -1457,7 +1459,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Circle size={18} style={{ color: 'currentColor' }} />
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        Informationen
+                        {t('testStarter.infoTitle')}
                       </Typography>
                     </Stack>
                     <Paper 
@@ -1472,29 +1474,29 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                       <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
                         <Stack spacing={1.5}>
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Status:</strong> {STATUS_LABEL[activeTab.status]}
+                            <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{t('testStarter.infoStatus')}</strong> {t(STATUS_LABEL_KEYS[activeTab.status])}
                           </Typography>
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Letzte Aktualisierung:</strong> {formatUtc(activeTab.updatedUtc)}
+                            <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{t('testStarter.infoUpdated')}</strong> {formatUtc(activeTab.updatedUtc)}
                           </Typography>
                         </Stack>
                         {activeTab.run && (
                           <Stack spacing={1.5}>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Run-ID:</strong> {activeTab.run.id}
+                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{t('testStarter.infoRunId')}</strong> {activeTab.run.id}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Gestartet:</strong> {formatUtc(activeTab.run.startedUtc)}
+                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{t('testStarter.infoStarted')}</strong> {formatUtc(activeTab.run.startedUtc)}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Beendet:</strong> {formatUtc(activeTab.run.finishedUtc)}
+                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{t('testStarter.infoFinished')}</strong> {formatUtc(activeTab.run.finishedUtc)}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Exit-Code:</strong> {activeTab.run.exitCode ?? '—'}
+                              <strong style={{ color: 'rgba(255,255,255,0.9)' }}>{t('testStarter.infoExitCode')}</strong> {activeTab.run.exitCode ?? '\u2014'}
                             </Typography>
                             {activeTab.run.error && (
                               <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-                                <strong>Fehler:</strong> {activeTab.run.error}
+                                <strong>{t('common.errorLabel')}</strong> {activeTab.run.error}
                               </Typography>
                             )}
                           </Stack>
@@ -1509,10 +1511,10 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Circle size={18} style={{ color: 'currentColor' }} />
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        Konsolenausgabe
+                        {t('testStarter.consoleTitle')}
                         {hasMultipleInterfaces && (
                           <Box component="span" sx={{ ml: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
-                            ({logsByInterface.size} Interfaces)
+                            {t('testStarter.interfacesCount', { count: logsByInterface.size })}
                           </Box>
                         )}
                       </Typography>
@@ -1533,7 +1535,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                             }}
                           >
                             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1, display: 'block' }}>
-                              Allgemein
+                              {t('testStarter.logsGeneral')}
                             </Typography>
                             <Box sx={{ maxHeight: 150, overflowY: 'auto' }}>
                               <Stack spacing={0.5}>
@@ -1576,7 +1578,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                                 <Box sx={{ maxHeight: 200, overflowY: 'auto' }} ref={iface === affectedInterfaceNames[0] ? logContainerRef : undefined}>
                                   {logs.length === 0 ? (
                                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                      Noch keine Ausgaben.
+                                      {t('testStarter.noOutput')}
                                     </Typography>
                                   ) : (
                                     <Stack spacing={0.5}>
@@ -1618,7 +1620,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                           <Stack spacing={1} alignItems="center" sx={{ py: 4 }}>
                             <Circle size={32} style={{ color: 'rgba(255,255,255,0.2)', opacity: 0.5 }} />
                             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                              Noch keine Ausgaben vorhanden.
+                              {t('testStarter.noOutputYet')}
                             </Typography>
                           </Stack>
                         ) : (
@@ -1673,7 +1675,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
                 </Stack>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  Kein Tab ausgewählt.
+                  {t('testStarter.noTabSelected')}
                 </Typography>
               )}
             </Box>
@@ -1685,10 +1687,10 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
          open={deleteDialog.open}
          onClose={() => setDeleteDialog({ open: false, tab: null })}
          onConfirm={confirmDeleteTab}
-         title="Tab schließen"
-         message={`Der Tab "${deleteDialog.tab?.title}" wird geschlossen. Diese Aktion kann nicht rückgängig gemacht werden.`}
-         confirmText="OK"
-         cancelText="Abbrechen"
+         title={t('testStarter.deleteTabTitle')}
+         message={t('testStarter.deleteTabMessage', { title: deleteDialog.tab?.title })}
+         confirmText={t('common.ok')}
+         cancelText={t('common.cancel')}
          variant="warning"
          loading={deleteDialog.tab ? isTabPending(deleteDialog.tab.id) : false}
        />
@@ -1697,15 +1699,15 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
          open={renameDialog.open}
          onClose={() => setRenameDialog({ open: false, tab: null })}
          onConfirm={confirmRenameTab}
-         title="Tab umbenennen"
-         message="Neuer Name für den Test:"
-         confirmText="Umbenennen"
-         cancelText="Abbrechen"
+         title={t('testStarter.renameTitle')}
+         message={t('testStarter.renameMessage')}
+         confirmText={t('testStarter.renameConfirm')}
+         cancelText={t('common.cancel')}
          variant="info"
          inputMode={true}
-         inputLabel="Tab-Name"
+         inputLabel={t('testStarter.renameInputLabel')}
          inputValue={renameDialog.tab?.title || ''}
-         inputPlaceholder="Neuer Tab-Name"
+         inputPlaceholder={t('testStarter.renamePlaceholder')}
          loading={renameDialog.tab ? isTabPending(renameDialog.tab.id) : false}
        />
      </Box>

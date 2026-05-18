@@ -167,9 +167,9 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
     const hours = Math.floor((seconds % 86400) / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     
-    if (days > 0) return `${days}d ${hours}h`
-    if (hours > 0) return `${hours}h ${minutes}m`
-    return `${minutes}m`
+    if (days > 0) return `${days}${t('sidebar.days').substring(0,1)} ${hours}${t('sidebar.hours').substring(0,1)}`
+    if (hours > 0) return `${hours}${t('sidebar.hours').substring(0,1)} ${minutes}${t('sidebar.minutes').substring(0,1)}`
+    return `${minutes}${t('sidebar.minutes').substring(0,1)}`
   }
 
   // Persisted collapse state for permanent sidebar only
@@ -259,8 +259,8 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
         </Box>
         {/* Right collapse button only in expanded permanent mode */}
         {!isCollapsed && variant === 'permanent' && (
-          <Tooltip title="Sidebar einklappen">
-            <IconButton size="small" color="inherit" aria-label="Sidebar einklappen" sx={{ color: 'inherit' }} onClick={() => setCollapsed(true)}>
+          <Tooltip title={t('sidebar.collapse')}>
+            <IconButton size="small" color="inherit" aria-label={t('sidebar.collapse')} sx={{ color: 'inherit' }} onClick={() => setCollapsed(true)}>
               <ChevronLeft size={18} />
             </IconButton>
           </Tooltip>
@@ -382,7 +382,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                   {!isCollapsed && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       <Play size={14} color="#afafaf" />
-                      <Typography sx={{ fontSize: '0.8rem', color: '#afafaf' }}>Laufende Tests</Typography>
+                      <Typography sx={{ fontSize: '0.8rem', color: '#afafaf' }}>{t('sidebar.runningTests')}</Typography>
                       {openRunning ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </Box>
                   )}
@@ -390,7 +390,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                 </Box>
               )
               const headerWrapped = isCollapsed ? (
-                <Tooltip title="Laufende Tests" placement="right" enterDelay={400}><Box>{header}</Box></Tooltip>
+                <Tooltip title={t('sidebar.runningTests')} placement="right" enterDelay={400}><Box>{header}</Box></Tooltip>
               ) : header
               return (
                 <Box>
@@ -399,7 +399,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                     {(running.length === 0) ? (
                       <Box sx={{ py: 0.75, px: 1, pl: 1.5, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                         <FileX size={14} />
-                        <Typography variant="caption" color="text.secondary">Keine laufenden Tests</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('sidebar.noRunningTests')}</Typography>
                       </Box>
                     ) : (
                       <List disablePadding>
@@ -472,7 +472,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                   {!isCollapsed && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       <CalendarClock size={14} color="#afafaf" />
-                      <Typography sx={{ fontSize: '0.8rem', color: '#afafaf' }}>Geplante Tests</Typography>
+                      <Typography sx={{ fontSize: '0.8rem', color: '#afafaf' }}>{t('sidebar.scheduledTests')}</Typography>
                       {openScheduled ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </Box>
                   )}
@@ -480,7 +480,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                 </Box>
               )
               const headerWrapped = isCollapsed ? (
-                <Tooltip title="Geplante Tests" placement="right" enterDelay={400}><Box>{header}</Box></Tooltip>
+                <Tooltip title={t('sidebar.scheduledTests')} placement="right" enterDelay={400}><Box>{header}</Box></Tooltip>
               ) : header
               return (
                 <Box>
@@ -489,7 +489,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                     {(scheduled.length === 0) ? (
                       <Box sx={{ py: 0.75, px: 1, pl: 1.5, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                         <FileX size={14} />
-                        <Typography variant="caption" color="text.secondary">Keine geplanten Tests</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('sidebar.noScheduledTests')}</Typography>
                       </Box>
                     ) : (
                       <List disablePadding>
@@ -553,7 +553,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                   {!isCollapsed && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       <CheckCircle size={14} color="#afafaf" />
-                      <Typography sx={{ fontSize: '0.8rem', color: '#afafaf' }}>Abgeschlossene Tests</Typography>
+                      <Typography sx={{ fontSize: '0.8rem', color: '#afafaf' }}>{t('sidebar.completedTests')}</Typography>
                       {openCompleted ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </Box>
                   )}
@@ -561,7 +561,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                 </Box>
               )
               const headerWrapped = isCollapsed ? (
-                <Tooltip title="Abgeschlossene Tests" placement="right" enterDelay={400}><Box>{header}</Box></Tooltip>
+                <Tooltip title={t('sidebar.completedTests')} placement="right" enterDelay={400}><Box>{header}</Box></Tooltip>
               ) : header
               return (
                 <Box>
@@ -570,7 +570,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                     {(completed.length === 0) ? (
                       <Box sx={{ py: 0.75, px: 1, pl: 1.5, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                         <FileX size={14} />
-                        <Typography variant="caption" color="text.secondary">Keine abgeschlossenen Tests</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('sidebar.noCompletedTests')}</Typography>
                       </Box>
                     ) : (
                       <List disablePadding>
@@ -681,11 +681,11 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                           flexShrink: 0
                         }}
                       />
-                      <span style={{ color: 'rgba(255,255,255,0.9)' }}>API</span>
+                      <span style={{ color: 'rgba(255,255,255,0.9)' }}>{t('sidebar.apiLabel')}</span>
                     </Box>
                   </Tooltip>
                   {cpuTemp != null && (
-                    <Tooltip title={`CPU Temperatur: ${cpuTemp}°C`}>
+                    <Tooltip title={`${t('sidebar.cpuTemp')}: ${cpuTemp}°C`}>
                       <Box
                         sx={{
                           display: 'flex',
@@ -705,7 +705,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
                     </Tooltip>
                   )}
                   {uptime != null && (
-                    <Tooltip title={`Uptime: ${Math.floor(uptime / 86400)} Tage, ${Math.floor((uptime % 86400) / 3600)} Stunden, ${Math.floor((uptime % 3600) / 60)} Minuten`}>
+                    <Tooltip title={`${t('sidebar.uptime')}: ${Math.floor(uptime / 86400)} ${t('sidebar.days')}, ${Math.floor((uptime % 86400) / 3600)} ${t('sidebar.hours')}, ${Math.floor((uptime % 3600) / 60)} ${t('sidebar.minutes')}`}>
                       <Box
                         sx={{
                           display: 'flex',

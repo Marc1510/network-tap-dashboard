@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Play, FolderOpen, Calendar, Settings, Terminal } from 'lucide-react'
 import { useWindows } from './windows/WindowsContext'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface QuickActionBarProps {
   apiBase: string
 }
 
 export default function QuickActionBar({ apiBase }: QuickActionBarProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { openSshWindow } = useWindows()
   const [schedulesCount, setSchedulesCount] = useState<number | null>(null)
@@ -62,31 +64,36 @@ export default function QuickActionBar({ apiBase }: QuickActionBarProps) {
 
   const quickActions = [
     {
-      label: 'Test starten',
+      id: 'tests',
+      label: t('quickActions.tests'),
       icon: Play,
       onClick: handleTestStart,
       badge: null,
     },
     {
-      label: 'Aufzeichnungen',
+      id: 'captures',
+      label: t('quickActions.captures'),
       icon: FolderOpen,
       onClick: () => navigate('/captures'),
       badge: capturesCount,
     },
     {
-      label: 'Zeitplan',
+      id: 'schedule',
+      label: t('quickActions.schedule'),
       icon: Calendar,
       onClick: () => navigate('/schedule'),
       badge: schedulesCount,
     },
     {
-      label: 'Testkonfiguration',
+      id: 'testConfig',
+      label: t('quickActions.testConfig'),
       icon: Settings,
       onClick: () => navigate('/test-config'),
       badge: profilesCount,
     },
     {
-      label: 'SSH Terminal',
+      id: 'ssh',
+      label: t('quickActions.ssh'),
       icon: Terminal,
       onClick: () => openSshWindow(),
       badge: '+',
@@ -100,7 +107,7 @@ export default function QuickActionBar({ apiBase }: QuickActionBarProps) {
           const Icon = action.icon
           const hasBadge = action.badge !== null && action.badge !== undefined
           const badgeContent = hasBadge
-            ? (action.label === 'SSH Terminal' ? action.badge : (!loading ? action.badge : undefined))
+            ? (action.id === 'ssh' ? action.badge : (!loading ? action.badge : undefined))
             : undefined
 
           return (

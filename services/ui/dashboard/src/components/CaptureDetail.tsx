@@ -9,12 +9,14 @@ import { downloadBlob } from '../utils/blobDownload'
 import { useSeenCaptures } from '../hooks/useSeenCaptures'
 import { formatFileSize } from '../utils/formatUtils'
 import { getCaptureSession, updateCaptureSession, deleteCaptureSessions, downloadCapture } from '../api/captures'
+import { useTranslation } from 'react-i18next'
 
 type CaptureDetailProps = {
   apiBase: string
 }
 
 export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
+  const { t } = useTranslation()
   const { captureId } = useParams<{ captureId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
@@ -147,24 +149,24 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
         open={isModalOpen}
         onClose={handleCloseModal}
         onConfirm={handleSaveTestName}
-        title="Testnamen bearbeiten"
-        message="Neuen Namen für Test eingeben:"
-        confirmText="Speichern"
-        cancelText="Abbrechen"
+        title={t('captureDetail.renameTitle')}
+        message={t('captureDetail.renameMessage')}
+        confirmText={t('common.save')}
+        cancelText={t('common.cancel')}
         loading={isSavingName}
         inputMode={true}
-        inputLabel="Testname"
+        inputLabel={t('captureDetail.testNameLabel')}
         inputValue={testName}
-        inputPlaceholder="Testname eingeben..."
+        inputPlaceholder={t('captureDetail.testNamePlaceholder')}
       />
       <ConfirmDialog
         open={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteCapture}
-        title="Test löschen"
-        message={`Test wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
-        confirmText="Löschen"
-        cancelText="Abbrechen"
+        title={t('captureDetail.deleteTitle')}
+        message={t('captureDetail.deleteMessage')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         loading={isDeleting}
       />
 
@@ -176,7 +178,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                 <ArrowLeft size={20} />
               </Button>
               <Typography variant="h6" noWrap sx={{ flex: 1, minWidth: 0 }}>
-                {detail && detail !== 'loading' && detail.test_name ? detail.test_name : (captureId ? `Test-Details ${captureId.substring(0, 8)}` : 'Test-Details')}
+                {detail && detail !== 'loading' && detail.test_name ? detail.test_name : (captureId ? t('captureDetail.titleWithId', { id: captureId.substring(0, 8) }) : t('captureDetail.title'))}
               </Typography>
             </Stack>
             <Box>
@@ -246,7 +248,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                   <ListItemIcon>
                     <Pencil size={18} />
                   </ListItemIcon>
-                  <ListItemText primary="Umbenennen" />
+                  <ListItemText primary={t('common.rename')} />
                 </MenuItem>
                 <Divider sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.08)' }} />
                 {detail !== 'loading' && detail && detail.files?.length === 1 ? (
@@ -258,7 +260,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                     <ListItemIcon>
                       <Download size={18} />
                     </ListItemIcon>
-                    <ListItemText primary="PCAP herunterladen" />
+                    <ListItemText primary={t('captureDetail.downloadSingle')} />
                   </MenuItem>
                 ) : (
                   <MenuItem 
@@ -271,7 +273,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                     <ListItemIcon>
                       <Download size={18} />
                     </ListItemIcon>
-                    <ListItemText primary="Auswahl herunterladen" />
+                    <ListItemText primary={t('captureDetail.downloadSelection')} />
                   </MenuItem>
                 )}
                 <Divider sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.08)' }} />
@@ -293,17 +295,17 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                   <ListItemIcon>
                     <Trash2 size={18} />
                   </ListItemIcon>
-                  <ListItemText primary="Löschen" />
+                  <ListItemText primary={t('common.delete')} />
                 </MenuItem>
               </Menu>
             </Box>
           </Stack>
 
         {detail === 'loading' && (
-          <Typography variant="body2" color="text.secondary">Lade…</Typography>
+          <Typography variant="body2" color="text.secondary">{t('common.loading')}</Typography>
         )}
         {detail === null && (
-          <Typography variant="body2" color="error.main">Eintrag nicht gefunden.</Typography>
+          <Typography variant="body2" color="error.main">{t('captureDetail.notFound')}</Typography>
         )}
         {detail && detail !== 'loading' && (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
@@ -322,23 +324,23 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                   <Info size={18} color="#fff" />
                 </Box>
                 <Typography variant="h6" fontWeight="600" color="white">
-                  Informationen
+                  {t('common.information')}
                 </Typography>
               </Stack>
               <Stack spacing={1.5}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Capture ID</Typography>
-                  <Typography variant="body2" fontWeight="500">{captureId || '—'}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('captureDetail.captureId')}</Typography>
+                  <Typography variant="body2" fontWeight="500">{captureId || '\u2014'}</Typography>
                 </Box>
                 {detail.profile_name && (
                   <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Testprofil</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('captureDetail.profile')}</Typography>
                     <Typography variant="body2" fontWeight="500">{detail.profile_name}</Typography>
                   </Box>
                 )}
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
-                    {detail.interfaces && detail.interfaces.length > 1 ? 'Interfaces' : 'Interface'}
+                    {detail.interfaces && detail.interfaces.length > 1 ? t('captureDetail.interfaces') : t('captureDetail.interface')}
                   </Typography>
                   {detail.interfaces && detail.interfaces.length > 1 ? (
                     <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ gap: 0.5 }}>
@@ -359,41 +361,41 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                       ))}
                     </Stack>
                   ) : (
-                    <Typography variant="body2" fontWeight="500">{detail.interface || '—'}</Typography>
+                    <Typography variant="body2" fontWeight="500">{detail.interface || '\u2014'}</Typography>
                   )}
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>PID</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('captureDetail.pid')}</Typography>
                   <Typography variant="body2" fontWeight="500">{detail.pid}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Status</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('common.status')}</Typography>
                   <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, backgroundColor: 'rgba(255,255,255,0.06)', px: 1.5, py: 0.25, borderRadius: 1.5 }}>
                     <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: detail.running ? '#4CAF50' : '#757575' }} />
                     <Typography variant="body2" fontWeight="500" color="white">
-                      {detail.running ? 'läuft' : 'beendet'}
+                      {detail.running ? t('common.running') : t('common.stopped')}
                     </Typography>
                   </Box>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Start</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('common.start')}</Typography>
                   <Typography variant="body2" fontWeight="500">{formatUtc(detail.start_utc)}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Stop</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('common.stop')}</Typography>
                   <Typography variant="body2" fontWeight="500">{formatUtc(detail.stop_utc)}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Filter</Typography>
-                  <Typography variant="body2" fontWeight="500">{detail.bpf_filter || '—'}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('captureDetail.filter')}</Typography>
+                  <Typography variant="body2" fontWeight="500">{detail.bpf_filter || '\u2014'}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Ring</Typography>
-                  <Typography variant="body2" fontWeight="500">{detail.ring_file_count} × {detail.ring_file_size_mb}MB</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('captureDetail.ring')}</Typography>
+                  <Typography variant="body2" fontWeight="500">{t('captureDetail.ringValue', { count: detail.ring_file_count, size: detail.ring_file_size_mb })}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Basisdatei</Typography>
-                  <Typography variant="body2" fontWeight="500">{detail.filename_base || '—'}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>{t('captureDetail.baseFile')}</Typography>
+                  <Typography variant="body2" fontWeight="500">{detail.filename_base || '\u2014'}</Typography>
                 </Box>
               </Stack>
             </Paper>
@@ -415,7 +417,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                   </Box>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Typography variant="h6" fontWeight="600" color="white">
-                      Dateien
+                      {t('captureDetail.files')}
                     </Typography>
                     {detail.files && detail.files.length > 0 && getTotalFileSize() > 0 && (
                       <Typography 
@@ -444,7 +446,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                         indeterminate={selectedNames.length > 0 && selectedNames.length < captureFiles.length}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => toggleAll(e.target.checked)}
                       />
-                      <Typography variant="caption" color="text.secondary">Alle auswählen</Typography>
+                      <Typography variant="caption" color="text.secondary">{t('common.selectAll')}</Typography>
                     </Stack>
                   )
                 })()}
@@ -474,7 +476,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                               fontFamily: 'monospace'
                             }}
                           >
-                            {interfaceFiles.length} {interfaceFiles.length === 1 ? 'Datei' : 'Dateien'}
+                            {t('captureDetail.fileCount', { count: interfaceFiles.length })}
                           </Typography>
                         </Stack>
                         <Stack spacing={1}>
@@ -528,14 +530,14 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                                       fontFamily: 'monospace'
                                     }}
                                   >
-                                    {typeof f.size_bytes === 'number' ? formatFileSize(f.size_bytes) : '—'}
+                                    {typeof f.size_bytes === 'number' ? formatFileSize(f.size_bytes) : '\u2014'}
                                   </Typography>
                                   <IconButton 
                                     size="small" 
                                     component="a" 
                                     href={`${apiBase}/api/captures/${captureId}/files/${encodeURIComponent(f.name)}`} 
-                                    aria-label="Datei herunterladen" 
-                                    title="Datei herunterladen"
+                                    aria-label={t('captureDetail.downloadFile')}
+                                    title={t('captureDetail.downloadFile')}
                                     sx={{ 
                                       color: 'text.secondary',
                                       '&:hover': {
@@ -605,14 +607,14 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                                   fontFamily: 'monospace'
                                 }}
                               >
-                                {typeof f.size_bytes === 'number' ? formatFileSize(f.size_bytes) : '—'}
+                                {typeof f.size_bytes === 'number' ? formatFileSize(f.size_bytes) : '\u2014'}
                               </Typography>
                               <IconButton 
                                 size="small" 
                                 component="a" 
                                 href={`${apiBase}/api/captures/${captureId}/files/${encodeURIComponent(f.name)}`} 
-                                aria-label="Datei herunterladen" 
-                                title="Datei herunterladen"
+                                aria-label={t('captureDetail.downloadFile')}
+                                title={t('captureDetail.downloadFile')}
                                 sx={{ 
                                   color: 'text.secondary',
                                   '&:hover': {
@@ -631,7 +633,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                   )
                 ) : (
                   <Box sx={{ py: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">Keine Dateien gefunden.</Typography>
+                    <Typography variant="body2" color="text.secondary">{t('captureDetail.noFiles')}</Typography>
                   </Box>
                 )
                 })()}
@@ -654,7 +656,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                       <FileSpreadsheet size={14} color="#4CAF50" />
                     </Box>
                     <Typography variant="subtitle2" fontWeight="600" color="rgba(255,255,255,0.8)">
-                      Metadaten
+                      {t('captureDetail.metadata')}
                     </Typography>
                     <Typography 
                       variant="caption" 
@@ -667,7 +669,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                         fontFamily: 'monospace'
                       }}
                     >
-                      {detail.metadata_files.length} {detail.metadata_files.length === 1 ? 'Datei' : 'Dateien'}
+                      {t('captureDetail.fileCount', { count: detail.metadata_files.length })}
                     </Typography>
                   </Stack>
                   <Stack spacing={1}>
@@ -715,14 +717,14 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
                                 fontFamily: 'monospace'
                               }}
                             >
-                              {typeof f.size_bytes === 'number' ? formatFileSize(f.size_bytes) : '—'}
+                              {typeof f.size_bytes === 'number' ? formatFileSize(f.size_bytes) : '\u2014'}
                             </Typography>
                             <IconButton 
                               size="small" 
                               component="a" 
                               href={`${apiBase}/api/captures/${captureId}/files/${encodeURIComponent(f.name)}`} 
-                              aria-label="Datei herunterladen" 
-                              title="Datei herunterladen"
+                              aria-label={t('captureDetail.downloadFile')}
+                              title={t('captureDetail.downloadFile')}
                               sx={{ 
                                 color: '#4CAF50',
                                 '&:hover': {

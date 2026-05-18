@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export type WindowType = 'ssh-terminal'
 
@@ -39,6 +40,7 @@ function clamp(min: number, v: number, max: number) {
 }
 
 export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { t } = useTranslation()
   const [windows, setWindows] = useState<WindowState[]>([])
   const nextZ = useRef(1000)
 
@@ -105,8 +107,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [])
 
   const openSshWindow = useCallback(() => {
-    return openWindow('ssh-terminal', { title: 'SSH Terminal' })
-  }, [openWindow])
+    return openWindow('ssh-terminal', { title: t('ssh.title') })
+  }, [openWindow, t])
 
   const closeWindow = useCallback((id: string) => {
     setWindows((prev) => prev.filter((w) => w.id !== id))

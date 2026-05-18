@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import EmptyState from './EmptyState'
 import { formatUtc } from '../utils/dateUtils'
 import { listCaptureSessions } from '../api/captures'
+import { useTranslation } from 'react-i18next'
 
 interface CaptureSession {
   capture_id: string
@@ -25,6 +26,7 @@ interface LatestTestsProps {
 }
 
 export default function LatestTests({ apiBase }: LatestTestsProps) {
+  const { t } = useTranslation()
   const [latest, setLatest] = useState<CaptureSession[] | null>(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -56,7 +58,7 @@ export default function LatestTests({ apiBase }: LatestTestsProps) {
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <History size={20} color="white" />
-            <Typography variant="h6" fontWeight="600">Letzte Tests</Typography>
+            <Typography variant="h6" fontWeight="600">{t('latestTests.title')}</Typography>
           </Stack>
           <Button 
             variant="contained"
@@ -97,7 +99,7 @@ export default function LatestTests({ apiBase }: LatestTestsProps) {
                   fontSize: '0.8rem',
                 }}
               >
-                Alle anzeigen
+                {t('common.viewAll')}
               </Typography>
             </Stack>
           </Button>
@@ -133,7 +135,7 @@ export default function LatestTests({ apiBase }: LatestTestsProps) {
           </Stack>
         )}
         {!loading && latest && latest.length === 0 && (
-          <EmptyState message="Keine Tests vorhanden." />
+          <EmptyState message={t('latestTests.empty')} />
         )}
         {!loading && latest && (
           <Stack spacing={1.5}>
@@ -187,7 +189,7 @@ export default function LatestTests({ apiBase }: LatestTestsProps) {
                         mb: 0,
                       }}
                     >
-                      {s.test_name || s.interface || '—'}
+                      {s.test_name || s.interface || '\u2014'}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -197,7 +199,7 @@ export default function LatestTests({ apiBase }: LatestTestsProps) {
                         lineHeight: 1.1,
                       }}
                     >
-                      PID: {s.pid ? s.pid : s.capture_id.substring(0, 8)} • Start: {formatUtc(s.start_utc)}
+                      {t('latestTests.pid')}: {s.pid ? s.pid : s.capture_id.substring(0, 8)} - {t('latestTests.start')}: {formatUtc(s.start_utc)}
                     </Typography>
                   </Box>
                 </Stack>

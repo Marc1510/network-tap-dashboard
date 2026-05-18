@@ -11,20 +11,22 @@ import { formatUtc } from '../utils/dateUtils'
 import { deepEqual } from '../utils/comparison'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import { useTranslation } from 'react-i18next'
 
 type TestProfileEditorProps = { apiBase: string }
 
 // Available protocols for filtering
 const AVAILABLE_PROTOCOLS = [
-  { value: 'tcp', label: 'TCP', description: 'Transmission Control Protocol' },
-  { value: 'udp', label: 'UDP', description: 'User Datagram Protocol' },
-  { value: 'icmp', label: 'ICMP', description: 'Internet Control Message Protocol' },
-  { value: 'arp', label: 'ARP', description: 'Address Resolution Protocol' },
-  { value: 'ip', label: 'IP', description: 'Internet Protocol' },
-  { value: 'ip6', label: 'IPv6', description: 'Internet Protocol Version 6' },
+  { value: 'tcp', labelKey: 'profileEditor.protocols.tcp', descriptionKey: 'profileEditor.protocols.tcpDesc' },
+  { value: 'udp', labelKey: 'profileEditor.protocols.udp', descriptionKey: 'profileEditor.protocols.udpDesc' },
+  { value: 'icmp', labelKey: 'profileEditor.protocols.icmp', descriptionKey: 'profileEditor.protocols.icmpDesc' },
+  { value: 'arp', labelKey: 'profileEditor.protocols.arp', descriptionKey: 'profileEditor.protocols.arpDesc' },
+  { value: 'ip', labelKey: 'profileEditor.protocols.ip', descriptionKey: 'profileEditor.protocols.ipDesc' },
+  { value: 'ip6', labelKey: 'profileEditor.protocols.ipv6', descriptionKey: 'profileEditor.protocols.ipv6Desc' },
 ]
 
 export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isCreate = id === 'new' || !id
@@ -82,7 +84,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
         } catch (e) {
           if (cancelled) return
           setInitial(null)
-          setError('Profil konnte nicht geladen werden.')
+          setError(t('profileEditor.errors.load'))
         }
       })()
     }
@@ -145,7 +147,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
         setTimeout(() => setSaveSuccess(false), 3000)
       }
     } catch (e) {
-      setError('Speichern fehlgeschlagen.')
+      setError(t('profileEditor.errors.save'))
     } finally {
       setSaving(false)
     }
@@ -316,45 +318,45 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3, pb: 10 }}>
       <Paper sx={{ p: 2, borderRadius: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Typography variant="h6">{isCreate ? 'Neues Testprofil' : 'Testprofil bearbeiten'}</Typography>
+          <Typography variant="h6">{isCreate ? t('profileEditor.titleCreate') : t('profileEditor.titleEdit')}</Typography>
         </Stack>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
         )}
 
-        {initial === 'loading' && <Typography variant="body2" color="text.secondary">Lade…</Typography>}
-        {!isCreate && initial === null && <Typography variant="body2" color="error.main">Nicht gefunden.</Typography>}
+        {initial === 'loading' && <Typography variant="body2" color="text.secondary">{t('common.loading')}</Typography>}
+        {!isCreate && initial === null && <Typography variant="body2" color="error.main">{t('common.notFound')}</Typography>}
 
         {(isCreate || (initial && initial !== 'loading')) && (
           <Box component="form" onSubmit={onSubmit} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 2 }}>
             
             {/* 1. Allgemein */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mt: 1 }}>Allgemein</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mt: 1 }}>{t('profileEditor.sections.general')}</Typography>
             <TextField 
               name="name" 
-              label="Profilname" 
+              label={t('profileEditor.nameLabel')} 
               size="small" 
               value={form.name} 
               onChange={onChange} 
               required 
               disabled={readOnly}
-              helperText="Eindeutiger Name für dieses Capture-Profil"
+              helperText={t('profileEditor.nameHelp')}
             />
             <TextField 
               name="description" 
-              label="Beschreibung" 
+              label={t('profileEditor.descriptionLabel')} 
               size="small" 
               value={form.description || ''} 
               onChange={onChange} 
               disabled={readOnly} 
               multiline 
               minRows={2}
-              helperText="Optionale Beschreibung des Anwendungsfalls"
+              helperText={t('profileEditor.descriptionHelp')}
             />
             {!isCreate && initial !== null && initial !== 'loading' && (
               <Typography variant="caption" color="text.secondary">
-                Erstellt: {formatUtc(initial.createdUtc)} · Geändert: {formatUtc(initial.updatedUtc)}
+                {t('profileEditor.timestamps', { created: formatUtc(initial.createdUtc), updated: formatUtc(initial.updatedUtc) })}
               </Typography>
             )}
 
@@ -362,8 +364,8 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
 
             {/* 2. Netzwerk-Interfaces */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Netzwerk-Interfaces</Typography>
-              <Tooltip title="Wählen Sie die Netzwerk-Interfaces aus, auf denen der Traffic erfasst werden soll. Die verfügbaren Interfaces werden dynamisch vom System geladen.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.interfaces')}</Typography>
+              <Tooltip title={t('profileEditor.interfacesHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -377,11 +379,11 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
               renderInput={(params) => (
                 <TextField 
                   {...params} 
-                  label="Interfaces" 
+                  label={t('profileEditor.interfacesLabel')} 
                   size="small"
                   helperText={availableInterfaces.length === 0 
-                    ? "Lade verfügbare Interfaces..." 
-                    : `${availableInterfaces.length} Interface(s) verfügbar`
+                    ? t('profileEditor.interfacesLoading') 
+                    : t('profileEditor.interfacesAvailable', { count: availableInterfaces.length })
                   }
                 />
               )}
@@ -411,9 +413,9 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="Promiscuous Mode" 
+                label={t('profileEditor.promiscuousMode')} 
               />
-              <Tooltip title="Im Promiscuous Mode werden alle Pakete auf dem Interface erfasst, nicht nur die an diesen Host adressierten. Wenn deaktiviert, wird tcpdump mit -p gestartet.">
+              <Tooltip title={t('profileEditor.promiscuousHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -422,24 +424,24 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
 
             {/* 3. Trigger & Dauer */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Trigger & Dauer</Typography>
-              <Tooltip title="Legen Sie fest, wann die Capture-Session gestartet und beendet werden soll.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.trigger')}</Typography>
+              <Tooltip title={t('profileEditor.triggerHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
             
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 200 }} disabled={readOnly}>
-                <InputLabel>Stopbedingung</InputLabel>
+                <InputLabel>{t('profileEditor.stopCondition')}</InputLabel>
                 <Select 
-                  label="Stopbedingung" 
+                  label={t('profileEditor.stopCondition')} 
                   value={settings.stopCondition || 'manual'}
                   onChange={(e) => setSettings(prev => ({ ...prev, stopCondition: e.target.value as TestProfileSettings['stopCondition'] }))}
                 >
-                  <MenuItem value="manual">Manuell</MenuItem>
-                  <MenuItem value="duration">Nach Zeitdauer</MenuItem>
-                  <MenuItem value="packetCount">Nach Paketanzahl</MenuItem>
-                  <MenuItem value="fileSize">Nach Dateigröße</MenuItem>
+                  <MenuItem value="manual">{t('profileEditor.stopConditionManual')}</MenuItem>
+                  <MenuItem value="duration">{t('profileEditor.stopConditionDuration')}</MenuItem>
+                  <MenuItem value="packetCount">{t('profileEditor.stopConditionPacketCount')}</MenuItem>
+                  <MenuItem value="fileSize">{t('profileEditor.stopConditionFileSize')}</MenuItem>
                 </Select>
               </FormControl>
             </Stack>
@@ -448,7 +450,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField 
                   type="number" 
-                  label="Dauer" 
+                  label={t('profileEditor.durationLabel')} 
                   size="small" 
                   value={settings.stopDurationValue || 60} 
                   onChange={(e) => setSettings(prev => ({ ...prev, stopDurationValue: Number(e.target.value) }))} 
@@ -457,15 +459,15 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                   inputProps={{ min: 1 }}
                 />
                 <FormControl size="small" sx={{ width: 180 }} disabled={readOnly}>
-                  <InputLabel>Einheit</InputLabel>
+                  <InputLabel>{t('profileEditor.unitLabel')}</InputLabel>
                   <Select 
-                    label="Einheit" 
+                    label={t('profileEditor.unitLabel')} 
                     value={settings.stopDurationUnit || 'seconds'}
                     onChange={(e) => setSettings(prev => ({ ...prev, stopDurationUnit: e.target.value as TestProfileSettings['stopDurationUnit'] }))}
                   >
-                    <MenuItem value="seconds">Sekunden</MenuItem>
-                    <MenuItem value="minutes">Minuten</MenuItem>
-                    <MenuItem value="hours">Stunden</MenuItem>
+                    <MenuItem value="seconds">{t('profileEditor.units.seconds')}</MenuItem>
+                    <MenuItem value="minutes">{t('profileEditor.units.minutes')}</MenuItem>
+                    <MenuItem value="hours">{t('profileEditor.units.hours')}</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -474,13 +476,13 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
             {settings.stopCondition === 'packetCount' && (
               <TextField 
                 type="number" 
-                label="Paketanzahl (-c)" 
+                label={t('profileEditor.packetCountLabel')} 
                 size="small" 
                 value={settings.stopPacketCount || 0} 
                 onChange={(e) => setSettings(prev => ({ ...prev, stopPacketCount: Number(e.target.value) }))} 
                 disabled={readOnly} 
                 sx={{ width: 220 }}
-                helperText="Capture beenden nach dieser Anzahl an Paketen"
+                helperText={t('profileEditor.packetCountHelp')}
                 inputProps={{ min: 1 }}
               />
             )}
@@ -489,7 +491,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField 
                   type="number" 
-                  label="Dateigröße" 
+                  label={t('profileEditor.fileSizeLabel')} 
                   size="small" 
                   value={settings.stopFileSizeValue || 100} 
                   onChange={(e) => setSettings(prev => ({ ...prev, stopFileSizeValue: Number(e.target.value) }))} 
@@ -498,16 +500,16 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                   inputProps={{ min: 1 }}
                 />
                 <FormControl size="small" sx={{ width: 180 }} disabled={readOnly}>
-                  <InputLabel>Einheit</InputLabel>
+                  <InputLabel>{t('profileEditor.unitLabel')}</InputLabel>
                   <Select 
-                    label="Einheit" 
+                    label={t('profileEditor.unitLabel')} 
                     value={settings.stopFileSizeUnit || 'megabytes'}
                     onChange={(e) => setSettings(prev => ({ ...prev, stopFileSizeUnit: e.target.value as TestProfileSettings['stopFileSizeUnit'] }))}
                   >
-                    <MenuItem value="bytes">Bytes</MenuItem>
-                    <MenuItem value="kilobytes">Kilobytes (KB)</MenuItem>
-                    <MenuItem value="megabytes">Megabytes (MB)</MenuItem>
-                    <MenuItem value="gigabytes">Gigabytes (GB)</MenuItem>
+                    <MenuItem value="bytes">{t('profileEditor.units.bytes')}</MenuItem>
+                    <MenuItem value="kilobytes">{t('profileEditor.units.kilobytes')}</MenuItem>
+                    <MenuItem value="megabytes">{t('profileEditor.units.megabytes')}</MenuItem>
+                    <MenuItem value="gigabytes">{t('profileEditor.units.gigabytes')}</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -517,8 +519,8 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
 
             {/* 4. Capture-Optionen */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Capture-Optionen (tcpdump)</Typography>
-              <Tooltip title="Erweiterte tcpdump-Optionen für die Paketerfassung.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.captureOptions')}</Typography>
+              <Tooltip title={t('profileEditor.captureOptionsHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -526,40 +528,40 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField 
                 type="number" 
-                label="Snapshot Length (-s)" 
+                label={t('profileEditor.snapLengthLabel')} 
                 size="small" 
                 value={settings.snapLength || 0} 
                 onChange={(e) => setSettings(prev => ({ ...prev, snapLength: Number(e.target.value) }))} 
                 disabled={readOnly} 
                 sx={{ width: 200 }}
-                helperText="0 = Vollständige Pakete (65535 Bytes)"
+                helperText={t('profileEditor.snapLengthHelp')}
                 inputProps={{ min: 0, max: 262144 }}
               />
               <TextField 
                 type="number" 
-                label="Buffer-Größe (-B) in MiB" 
+                label={t('profileEditor.bufferLabel')} 
                 size="small" 
                 value={settings.bufferSize || 2} 
                 onChange={(e) => setSettings(prev => ({ ...prev, bufferSize: Number(e.target.value) }))} 
                 disabled={readOnly} 
                 sx={{ width: 200 }}
-                helperText="Kernel-Capture-Buffer"
+                helperText={t('profileEditor.bufferHelp')}
                 inputProps={{ min: 1, max: 64 }}
               />
             </Stack>
             
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 200 }} disabled={readOnly}>
-                <InputLabel>Zeitstempel-Präzision</InputLabel>
+                <InputLabel>{t('profileEditor.timestampPrecision')}</InputLabel>
                 <Select 
-                  label="Zeitstempel-Präzision" 
+                  label={t('profileEditor.timestampPrecision')} 
                   value={settings.timestampPrecision || 'micro'}
                   onChange={(e) => setSettings(prev => ({ ...prev, timestampPrecision: e.target.value as TestProfileSettings['timestampPrecision'] }))}
                 >
-                  <MenuItem value="micro">Mikrosekunden (μs)</MenuItem>
-                  <MenuItem value="nano">Nanosekunden (ns)</MenuItem>
+                  <MenuItem value="micro">{t('profileEditor.timestampMicro')}</MenuItem>
+                  <MenuItem value="nano">{t('profileEditor.timestampNano')}</MenuItem>
                 </Select>
-                <FormHelperText>Für TSN empfohlen: Nanosekunden</FormHelperText>
+                <FormHelperText>{t('profileEditor.timestampHelp')}</FormHelperText>
               </FormControl>
               
               <FormControlLabel 
@@ -571,9 +573,9 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="Immediate Mode"
+                label={t('profileEditor.immediateMode')}
               />
-              <Tooltip title="Pakete werden sofort verarbeitet, ohne Pufferung. Wichtig für Echtzeit-Analyse.">
+              <Tooltip title={t('profileEditor.immediateHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -582,8 +584,8 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
 
             {/* 5. Ringpuffer & Ausgabe */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Ringpuffer & Ausgabe</Typography>
-              <Tooltip title="Konfiguration des Ringpuffers für kontinuierliche Erfassung. Ältere Dateien werden überschrieben.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.ring')}</Typography>
+              <Tooltip title={t('profileEditor.ringHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -591,66 +593,66 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField 
                 type="number" 
-                label="Dateigröße (-C)" 
+                label={t('profileEditor.ringFileSizeLabel')} 
                 size="small" 
                 value={settings.ringFileSizeValue || 100} 
                 onChange={(e) => setSettings(prev => ({ ...prev, ringFileSizeValue: Number(e.target.value) }))} 
                 disabled={readOnly} 
                 sx={{ width: 160 }}
-                helperText="Rotation nach dieser Größe"
+                helperText={t('profileEditor.ringFileSizeHelp')}
                 inputProps={{ min: 1 }}
               />
               <FormControl size="small" sx={{ width: 180 }} disabled={readOnly}>
-                <InputLabel>Einheit</InputLabel>
+                <InputLabel>{t('profileEditor.unitLabel')}</InputLabel>
                 <Select 
-                  label="Einheit" 
+                  label={t('profileEditor.unitLabel')} 
                   value={settings.ringFileSizeUnit || 'megabytes'}
                   onChange={(e) => setSettings(prev => ({ ...prev, ringFileSizeUnit: e.target.value as TestProfileSettings['ringFileSizeUnit'] }))}
                 >
-                  <MenuItem value="bytes">Bytes</MenuItem>
-                  <MenuItem value="kilobytes">Kilobytes (KB)</MenuItem>
-                  <MenuItem value="megabytes">Megabytes (MB)</MenuItem>
-                  <MenuItem value="gigabytes">Gigabytes (GB)</MenuItem>
+                  <MenuItem value="bytes">{t('profileEditor.units.bytes')}</MenuItem>
+                  <MenuItem value="kilobytes">{t('profileEditor.units.kilobytes')}</MenuItem>
+                  <MenuItem value="megabytes">{t('profileEditor.units.megabytes')}</MenuItem>
+                  <MenuItem value="gigabytes">{t('profileEditor.units.gigabytes')}</MenuItem>
                 </Select>
               </FormControl>
               <TextField 
                 type="number" 
-                label="Dateianzahl (-W)" 
+                label={t('profileEditor.ringFileCountLabel')} 
                 size="small" 
                 value={settings.ringFileCount || 10} 
                 onChange={(e) => setSettings(prev => ({ ...prev, ringFileCount: Number(e.target.value) }))} 
                 disabled={readOnly} 
                 sx={{ width: 160 }}
-                helperText="Max. Anzahl der Ringpuffer-Dateien"
+                helperText={t('profileEditor.ringFileCountHelp')}
                 inputProps={{ min: 1, max: 100 }}
               />
             </Stack>
             
             <TextField 
-              label="Dateiname-Präfix" 
+              label={t('profileEditor.filenamePrefixLabel')} 
               size="small" 
               value={settings.filenamePrefix || ''} 
               onChange={(e) => setSettings(prev => ({ ...prev, filenamePrefix: e.target.value }))} 
               disabled={readOnly}
               placeholder={form.name.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'capture'}
-              helperText="Präfix für die PCAP-Dateien (z.B. capture_eth0_20241201_120000.pcap)"
+              helperText={t('profileEditor.filenamePrefixHelp')}
             />
 
             <Divider sx={{ my: 1 }} />
 
             {/* 6. Filter */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Filter (BPF)</Typography>
-              <Tooltip title="Berkeley Packet Filter (BPF) Ausdrücke zum Filtern des erfassten Traffics.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.filters')}</Typography>
+              <Tooltip title={t('profileEditor.filtersHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
             
             <FormControl size="small" disabled={readOnly}>
-              <InputLabel>Protokolle</InputLabel>
+              <InputLabel>{t('profileEditor.protocolsLabel')}</InputLabel>
               <Select
                 multiple
-                label="Protokolle"
+                label={t('profileEditor.protocolsLabel')}
                 value={settings.filterProtocols || []}
                 onChange={(e) => setSettings(prev => ({ ...prev, filterProtocols: e.target.value as string[] }))}
                 renderValue={(selected) => (
@@ -662,34 +664,34 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                 {AVAILABLE_PROTOCOLS.map(p => (
                   <MenuItem key={p.value} value={p.value}>
                     <Stack>
-                      <Typography>{p.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{p.description}</Typography>
+                      <Typography>{t(p.labelKey)}</Typography>
+                      <Typography variant="caption" color="text.secondary">{t(p.descriptionKey)}</Typography>
                     </Stack>
                   </MenuItem>
                 ))}
               </Select>
-              <FormHelperText>Leere Auswahl = alle Protokolle</FormHelperText>
+              <FormHelperText>{t('profileEditor.protocolsHelp')}</FormHelperText>
             </FormControl>
             
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField 
-                label="Host-Filter" 
+                label={t('profileEditor.hostFilterLabel')} 
                 size="small" 
                 value={settings.filterHosts || ''} 
                 onChange={(e) => setSettings(prev => ({ ...prev, filterHosts: e.target.value }))} 
                 disabled={readOnly}
-                placeholder="z.B. 192.168.1.1 oder aa:bb:cc:dd:ee:ff"
-                helperText="IP-Adresse oder MAC-Adresse"
+                placeholder={t('profileEditor.hostFilterPlaceholder')}
+                helperText={t('profileEditor.hostFilterHelp')}
                 sx={{ flex: 1 }}
               />
               <TextField 
-                label="Port-Filter" 
+                label={t('profileEditor.portFilterLabel')} 
                 size="small" 
                 value={settings.filterPorts || ''} 
                 onChange={(e) => setSettings(prev => ({ ...prev, filterPorts: e.target.value }))} 
                 disabled={readOnly}
-                placeholder="z.B. 80 oder 80-443"
-                helperText="Port oder Port-Bereich"
+                placeholder={t('profileEditor.portFilterPlaceholder')}
+                helperText={t('profileEditor.portFilterHelp')}
                 sx={{ width: 200 }}
               />
             </Stack>
@@ -697,7 +699,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField 
                 type="number" 
-                label="VLAN-ID" 
+                label={t('profileEditor.vlanIdLabel')} 
                 size="small" 
                 value={settings.filterVlanId ?? ''} 
                 onChange={(e) => setSettings(prev => ({ ...prev, filterVlanId: e.target.value === '' ? undefined : Number(e.target.value) }))} 
@@ -706,38 +708,38 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                 inputProps={{ min: 1, max: 4094 }}
               />
               <FormControl size="small" sx={{ minWidth: 150 }} disabled={readOnly}>
-                <InputLabel>Richtung (-Q)</InputLabel>
+                <InputLabel>{t('profileEditor.directionLabel')}</InputLabel>
                 <Select 
-                  label="Richtung (-Q)" 
+                  label={t('profileEditor.directionLabel')} 
                   value={settings.filterDirection || ''}
                   onChange={(e) => setSettings(prev => ({ ...prev, filterDirection: e.target.value as TestProfileSettings['filterDirection'] }))}
                 >
-                  <MenuItem value="">Alle</MenuItem>
-                  <MenuItem value="in">Eingehend</MenuItem>
-                  <MenuItem value="out">Ausgehend</MenuItem>
-                  <MenuItem value="inout">Beide</MenuItem>
+                  <MenuItem value="">{t('common.all')}</MenuItem>
+                  <MenuItem value="in">{t('profileEditor.directionIn')}</MenuItem>
+                  <MenuItem value="out">{t('profileEditor.directionOut')}</MenuItem>
+                  <MenuItem value="inout">{t('profileEditor.directionInOut')}</MenuItem>
                 </Select>
               </FormControl>
             </Stack>
             
             <TextField 
-              label="Benutzerdefinierter BPF-Filter" 
+              label={t('profileEditor.customFilterLabel')} 
               size="small" 
               value={settings.bpfFilter || ''} 
               onChange={(e) => setSettings(prev => ({ ...prev, bpfFilter: e.target.value }))} 
               disabled={readOnly}
               multiline
               minRows={2}
-              placeholder="z.B. tcp port 80 and host 192.168.1.1"
-              helperText="Erweiterte BPF-Syntax (siehe tcpdump-Dokumentation)"
+              placeholder={t('profileEditor.customFilterPlaceholder')}
+              helperText={t('profileEditor.customFilterHelp')}
             />
 
             <Divider sx={{ my: 1 }} />
 
             {/* 7. TSN-Optionen */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>TSN-Optionen</Typography>
-              <Tooltip title="Time-Sensitive Networking (TSN) spezifische Erfassungsoptionen für deterministische Netzwerke.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.tsn')}</Typography>
+              <Tooltip title={t('profileEditor.tsnHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -752,10 +754,10 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="802.1AS Synchronisation (gPTP) erfassen"
+                label={t('profileEditor.tsnSync')}
               />
               <Typography variant="caption" color="text.secondary" sx={{ ml: 4 }}>
-                Erfasst IEEE 802.1AS generalized Precision Time Protocol Pakete (EtherType 0x88f7)
+                {t('profileEditor.tsnSyncHelp')}
               </Typography>
             </Stack>
             
@@ -769,10 +771,10 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="PTP Traffic erfassen (UDP 319/320)"
+                label={t('profileEditor.ptpCapture')}
               />
               <Typography variant="caption" color="text.secondary" sx={{ ml: 4 }}>
-                Erfasst Precision Time Protocol Event- und General-Messages
+                {t('profileEditor.ptpCaptureHelp')}
               </Typography>
             </Stack>
             
@@ -786,20 +788,20 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="VLAN-getaggte Frames erfassen (802.1Q)"
+                label={t('profileEditor.vlanTagged')}
               />
             </Stack>
             
             <TextField 
               type="number" 
-              label="VLAN-Priorität (PCP) Filter" 
+              label={t('profileEditor.vlanPriorityLabel')} 
               size="small" 
               value={settings.tsnPriorityFilter ?? ''} 
               onChange={(e) => setSettings(prev => ({ ...prev, tsnPriorityFilter: e.target.value === '' ? undefined : Number(e.target.value) }))} 
               disabled={readOnly} 
               sx={{ width: 200 }}
               inputProps={{ min: 0, max: 7 }}
-              helperText="0-7: Nur Frames mit dieser Priorität erfassen"
+              helperText={t('profileEditor.vlanPriorityHelp')}
             />
 
             <Stack spacing={1}>
@@ -812,10 +814,10 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="Ethernet-Header ausgeben (-e Flag)"
+                label={t('profileEditor.linkHeader')}
               />
               <Typography variant="caption" color="text.secondary" sx={{ ml: 4 }}>
-                Zeigt Link-Level Header (MAC-Adressen, EtherType) in tcpdump-Ausgabe
+                {t('profileEditor.linkHeaderHelp')}
               </Typography>
             </Stack>
 
@@ -823,8 +825,8 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
 
             {/* 8. Nachbearbeitung */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Nachbearbeitung</Typography>
-              <Tooltip title="Optionen für die automatische Nachbearbeitung der erfassten Daten.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.post')}</Typography>
+              <Tooltip title={t('profileEditor.postHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
@@ -839,12 +841,12 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                     disabled={readOnly} 
                   />
                 } 
-                label="Nur Header speichern (reduzierte Snaplen)"
+                label={t('profileEditor.headerOnly')}
               />
               {settings.headerOnly && (
                 <TextField 
                   type="number" 
-                  label="Header Snaplen" 
+                  label={t('profileEditor.headerSnaplen')} 
                   size="small" 
                   value={settings.headerSnaplen || 96} 
                   onChange={(e) => setSettings(prev => ({ ...prev, headerSnaplen: Number(e.target.value) }))} 
@@ -864,7 +866,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                   disabled={readOnly} 
                 />
               } 
-              label="Test-spezifische Metadaten-Datei erstellen (CSV)"
+              label={t('profileEditor.metadataFile')}
             />
             
             <FormControlLabel 
@@ -876,35 +878,35 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                   disabled={readOnly} 
                 />
               } 
-              label="Statistiken nach Capture generieren"
+              label={t('profileEditor.generateStats')}
             />
 
             <Divider sx={{ my: 1 }} />
 
             {/* 9. Ressourcen */}
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Ressourcen</Typography>
-              <Tooltip title="Ressourcenlimits und Prioritätseinstellungen.">
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.sections.resources')}</Typography>
+              <Tooltip title={t('profileEditor.resourcesHelp')}>
                 <IconButton size="small"><InfoOutlinedIcon fontSize="small" /></IconButton>
               </Tooltip>
             </Stack>
             
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 200 }} disabled={readOnly}>
-                <InputLabel>CPU-Priorität</InputLabel>
+                <InputLabel>{t('profileEditor.cpuPriority')}</InputLabel>
                 <Select 
-                  label="CPU-Priorität" 
+                  label={t('profileEditor.cpuPriority')} 
                   value={settings.cpuPriority || 'normal'}
                   onChange={(e) => setSettings(prev => ({ ...prev, cpuPriority: e.target.value as TestProfileSettings['cpuPriority'] }))}
                 >
-                  <MenuItem value="normal">Normal</MenuItem>
-                  <MenuItem value="high">Hoch (nice -10)</MenuItem>
+                  <MenuItem value="normal">{t('profileEditor.cpuPriorityNormal')}</MenuItem>
+                  <MenuItem value="high">{t('profileEditor.cpuPriorityHigh')}</MenuItem>
                 </Select>
               </FormControl>
               
               <TextField 
                 type="number" 
-                label="Max. Speichernutzung (MB)" 
+                label={t('profileEditor.maxDiskLabel')} 
                 size="small" 
                 value={settings.maxDiskUsageMB || 1000} 
                 onChange={(e) => setSettings(prev => ({ ...prev, maxDiskUsageMB: Number(e.target.value) }))} 
@@ -917,16 +919,16 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
             <Divider sx={{ my: 1 }} />
 
             {/* Generierter tcpdump-Befehl */}
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Generierter tcpdump-Befehl</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('profileEditor.generatedCommandTitle')}</Typography>
             <TextField
-              label="tcpdump-Befehl (Vorschau)"
+              label={t('profileEditor.generatedCommandLabel')}
               size="small"
               value={generateTcpdumpCommand()}
               disabled
               multiline
               minRows={2}
               maxRows={6}
-              helperText="Dieser Befehl wird basierend auf den obigen Einstellungen generiert"
+              helperText={t('profileEditor.generatedCommandHelp')}
               sx={{
                 '& .MuiInputBase-input': {
                   fontFamily: 'monospace',
@@ -937,14 +939,12 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
 
             {readOnly && !interfacesOnlyEditable && (
               <Alert severity="info" sx={{ mt: 2 }}>
-                Dieses Profil ist ein Builtin-Profil und kann nicht bearbeitet werden. 
-                Es kann ein neues Profil basierend auf diesen Einstellungen erstellt werden.
+                {t('profileEditor.readOnlyInfo')}
               </Alert>
             )}
             {interfacesOnlyEditable && (
               <Alert severity="info" sx={{ mt: 2 }}>
-                Dieses Profil ist ein Default-Profil. Es kann nur das Netzwerk-Interface geändert werden. 
-                Alle anderen Einstellungen sind schreibgeschützt.
+                {t('profileEditor.interfacesOnlyInfo')}
               </Alert>
             )}
           </Box>
@@ -983,7 +983,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
               onClick={() => navigate('/test-config')}
               startIcon={<ArrowBackIcon />}
             >
-              Zurück
+              {t('common.back')}
             </Button>
             
             {(interfacesOnlyEditable || !readOnly) && (
@@ -994,7 +994,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                   size="medium" 
                   onClick={() => navigate('/test-config')}
                 >
-                  Abbrechen
+                  {t('common.cancel')}
                 </Button>
                 <Button 
                   type="submit" 
@@ -1003,7 +1003,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
                   onClick={onSubmit}
                   disabled={!hasChanges || saving}
                 >
-                  {saving ? 'Speichert...' : 'Speichern'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </Button>
               </Stack>
             )}
@@ -1016,7 +1016,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
         open={saveSuccess}
         autoHideDuration={3000}
         onClose={() => setSaveSuccess(false)}
-        message="Erfolgreich gespeichert"
+        message={t('profileEditor.saveSuccess')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={{ mb: 10 }}
       />

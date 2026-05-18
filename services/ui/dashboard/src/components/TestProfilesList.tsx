@@ -7,10 +7,12 @@ import { listTestProfiles, deleteTestProfile } from '../api/testProfiles'
 import ConfirmDialog from './ConfirmDialog'
 import EmptyState from './EmptyState'
 import { formatUtc } from '../utils/dateUtils'
+import { useTranslation } from 'react-i18next'
 
 type TestProfilesListProps = { apiBase: string }
 
 export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [profiles, setProfiles] = useState<TestProfile[] | 'loading' | 'error'>('loading')
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -64,8 +66,8 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
           }}
         >
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>Testprofile</Typography>
-            <Button size="small" variant="contained" startIcon={<Plus size={16} />} onClick={() => navigate('/test-config/new')}>Neu</Button>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>{t('profiles.title')}</Typography>
+            <Button size="small" variant="contained" startIcon={<Plus size={16} />} onClick={() => navigate('/test-config/new')}>{t('common.new')}</Button>
           </Stack>
         </Paper>
 
@@ -87,11 +89,11 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Settings size={16} style={{ color: '#9e9e9e' }} />
           </Box>
-          <Typography variant="body2" fontWeight={600} color="text.secondary">Profil</Typography>
-          <Typography variant="body2" fontWeight={600} color="text.secondary">Erstellt</Typography>
-          <Typography variant="body2" fontWeight={600} color="text.secondary">Geändert</Typography>
+          <Typography variant="body2" fontWeight={600} color="text.secondary">{t('profiles.table.profile')}</Typography>
+          <Typography variant="body2" fontWeight={600} color="text.secondary">{t('profiles.table.created')}</Typography>
+          <Typography variant="body2" fontWeight={600} color="text.secondary">{t('profiles.table.updated')}</Typography>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Typography variant="body2" fontWeight={600} color="text.secondary">Aktionen</Typography>
+            <Typography variant="body2" fontWeight={600} color="text.secondary">{t('common.actions')}</Typography>
           </Box>
         </Box>
 
@@ -116,13 +118,13 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
         {/* Error State */}
         {profiles === 'error' && (
           <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="error.main">Fehler beim Laden der Testprofile.</Typography>
+            <Typography variant="body2" color="error.main">{t('profiles.errors.load')}</Typography>
           </Box>
         )}
 
         {/* Empty State */}
         {Array.isArray(profiles) && profiles.length === 0 && (
-          <EmptyState message="Keine Testprofile vorhanden." />
+          <EmptyState message={t('profiles.empty')} />
         )}
 
         {/* Profile List */}
@@ -175,7 +177,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
                     {p.isDefault && (
                       <Chip 
                         size="small" 
-                        label="Default" 
+                        label={t('common.default')}
                         color="primary" 
                         variant="outlined" 
                         sx={{ height: 20, fontSize: '0.7rem' }}
@@ -192,7 +194,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
                       maxWidth: '100%',
                     }}
                   >
-                    {p.description || 'Keine Beschreibung'}
+                    {p.description || t('profiles.noDescription')}
                   </Typography>
                 </Stack>
 
@@ -217,7 +219,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
                   justifyContent="flex-end"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Tooltip title="Test mit diesem Profil starten">
+                  <Tooltip title={t('profiles.actions.startWithProfile')}>
                     <IconButton
                       size="small"
                       onClick={() => navigate(`/tests?open=new&profileId=${encodeURIComponent(p.id)}`)}
@@ -232,7 +234,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
                       <Play size={16} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Bearbeiten">
+                  <Tooltip title={t('common.edit')}>
                     <IconButton
                       size="small"
                       onClick={() => navigate(`/test-config/${encodeURIComponent(p.id)}`)}
@@ -247,7 +249,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
                       <Pencil size={16} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title={p.isDefault ? 'Default-Profil kann nicht gelöscht werden' : 'Löschen'}>
+                  <Tooltip title={p.isDefault ? t('profiles.actions.cannotDeleteDefault') : t('common.delete')}>
                     <span>
                       <IconButton
                         size="small"
@@ -277,10 +279,10 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
-        title="Testprofil löschen"
-        message={`Testprofil "${profileToDelete?.name}" wirklich löschen?`}
-        confirmText="Löschen"
-        cancelText="Abbrechen"
+          title={t('profiles.deleteTitle')}
+          message={t('profiles.deleteMessage', { name: profileToDelete?.name || '' })}
+          confirmText={t('common.delete')}
+          cancelText={t('common.cancel')}
         variant="warning"
         loading={busyId === profileToDelete?.id}
       />

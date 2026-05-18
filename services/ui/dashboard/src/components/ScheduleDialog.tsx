@@ -23,6 +23,7 @@ import type { Schedule, UpsertSchedule, Weekday } from '../api/schedules'
 import { useSearchParams } from 'react-router-dom'
 import { useServerTime } from '../hooks/useServerTime'
 import { padZero } from '../utils/formatUtils'
+import { useTranslation } from 'react-i18next'
 
 export type ScheduleDialogMode = 'create' | 'edit'
 
@@ -36,17 +37,8 @@ type Props = {
   onSubmit: (data: UpsertSchedule, existingId?: string) => Promise<void> | void
 }
 
-const weekdayOptions: { key: Weekday; label: string }[] = [
-  { key: 'MO', label: 'Mo' },
-  { key: 'TU', label: 'Di' },
-  { key: 'WE', label: 'Mi' },
-  { key: 'TH', label: 'Do' },
-  { key: 'FR', label: 'Fr' },
-  { key: 'SA', label: 'Sa' },
-  { key: 'SU', label: 'So' },
-]
-
 export default function ScheduleDialog({ open, mode, date, profiles, initial, onClose, onSubmit }: Props) {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const apiBase = searchParams.get('api') ? String(searchParams.get('api')) : (import.meta.env.VITE_API_BASE ? String(import.meta.env.VITE_API_BASE) : '')
   const { now, todayStr: serverTodayStr } = useServerTime(apiBase)
@@ -65,6 +57,16 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
 
   const selectedProfile = useMemo(() => profiles.find(p => p.id === profileId), [profiles, profileId])
   const selectedStopCondition = (selectedProfile?.settings as Record<string, unknown> | undefined)?.stopCondition as string | undefined
+
+  const weekdayOptions: { key: Weekday; label: string }[] = [
+    { key: 'MO', label: t('schedule.weekdays.mo') },
+    { key: 'TU', label: t('schedule.weekdays.tu') },
+    { key: 'WE', label: t('schedule.weekdays.we') },
+    { key: 'TH', label: t('schedule.weekdays.th') },
+    { key: 'FR', label: t('schedule.weekdays.fr') },
+    { key: 'SA', label: t('schedule.weekdays.sa') },
+    { key: 'SU', label: t('schedule.weekdays.su') },
+  ]
 
   // initialize date from selected calendar day
   useEffect(() => {
@@ -240,30 +242,30 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{mode === 'create' ? 'Test einplanen' : 'Geplanten Test bearbeiten'}</DialogTitle>
+      <DialogTitle>{mode === 'create' ? t('scheduleDialog.titleCreate') : t('scheduleDialog.titleEdit')}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Titel (optional)" value={title} onChange={e => setTitle(e.target.value)} fullWidth />
+          <TextField label={t('scheduleDialog.titleLabel')} value={title} onChange={e => setTitle(e.target.value)} fullWidth />
 
-          <TextField select label="Testprofil" value={profileId} onChange={e => setProfileId(e.target.value)} fullWidth>
+          <TextField select label={t('scheduleDialog.profileLabel')} value={profileId} onChange={e => setProfileId(e.target.value)} fullWidth>
             {profiles.map(p => (
               <MenuItem key={p.id} value={p.id}>
-                {p.name} {p.isDefault ? '(Default)' : ''}
+                {p.name} {p.isDefault ? t('scheduleDialog.profileDefault') : ''}
               </MenuItem>
             ))}
           </TextField>
 
           {selectedStopCondition === 'manual' && (
             <Alert severity="warning" variant="outlined">
-              Dieses Testprofil verwendet die Stoppbedingung "manuell". Geplante Tests mit diesem Profil werden nicht automatisch beendet und müssen nach dem Start manuell gestoppt werden.
+              {t('scheduleDialog.manualStopWarning')}
             </Alert>
           )}
 
-          <FormControlLabel control={<Switch checked={enabled} onChange={e => setEnabled(e.target.checked)} />} label="Aktiviert" />
+          <FormControlLabel control={<Switch checked={enabled} onChange={e => setEnabled(e.target.checked)} />} label={t('scheduleDialog.enabled')} />
 
           {/* Zeitzonen-Einstellung entfernt: Es wird immer die Serverzeit verwendet */}
 
-          <FormControlLabel control={<Switch checked={skipIfRunning} onChange={e => setSkipIfRunning(e.target.checked)} />} label="Auslassen, wenn bereits läuft" />
+          <FormControlLabel control={<Switch checked={skipIfRunning} onChange={e => setSkipIfRunning(e.target.checked)} />} label={t('scheduleDialog.skipIfRunning')} />
 
           <ToggleButtonGroup
             color="primary"
@@ -272,15 +274,15 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
             onChange={(_, v) => v && setRuleType(v)}
             size="small"
           >
-            <ToggleButton value="once">Einmalig</ToggleButton>
-            <ToggleButton value="daily">Täglich</ToggleButton>
-            <ToggleButton value="weekly">Wöchentlich</ToggleButton>
+            <ToggleButton value="once">{t('scheduleDialog.rule.once')}</ToggleButton>
+            <ToggleButton value="daily">{t('scheduleDialog.rule.daily')}</ToggleButton>
+            <ToggleButton value="weekly">{t('scheduleDialog.rule.weekly')}</ToggleButton>
           </ToggleButtonGroup>
 
           {ruleType === 'once' && (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
-                label="Datum"
+                label={t('scheduleDialog.date')}
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
@@ -289,7 +291,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
                 fullWidth
               />
               <TextField
-                label="Uhrzeit"
+                label={t('scheduleDialog.time')}
                 type="time"
                 value={time}
                 onChange={e => setTime(e.target.value)}
@@ -304,7 +306,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
-                  label="Startdatum"
+                  label={t('scheduleDialog.startDate')}
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
@@ -313,7 +315,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
                   fullWidth
                 />
                 <TextField
-                  label="Uhrzeit"
+                  label={t('scheduleDialog.time')}
                   type="time"
                   value={time}
                   onChange={e => setTime(e.target.value)}
@@ -324,7 +326,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
               </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
-                  label={ruleType === 'daily' ? 'Intervall (alle N Tage)' : 'Intervall (alle N Wochen)'}
+                  label={ruleType === 'daily' ? t('scheduleDialog.intervalDays') : t('scheduleDialog.intervalWeeks')}
                   type="number"
                   value={interval}
                   onChange={e => setInterval(Math.max(1, Number(e.target.value || 1)))}
@@ -332,7 +334,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
                   fullWidth
                 />
                 <TextField
-                  label="Enddatum (optional)"
+                  label={t('scheduleDialog.endDate')}
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
@@ -343,7 +345,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
               </Stack>
               {ruleType === 'weekly' && (
               <div>
-                <FormLabel>Wochentage</FormLabel>
+                <FormLabel>{t('scheduleDialog.weekdaysLabel')}</FormLabel>
                 <FormGroup row>
                   {weekdayOptions.map(w => (
                     <FormControlLabel
@@ -354,12 +356,12 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
                   ))}
                 </FormGroup>
                 {weekdays.length === 0 && (
-                  <Typography variant="caption" color="text.secondary">Mindestens einen Wochentag wählen</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('scheduleDialog.weekdaysHint')}</Typography>
                 )}
               </div>
               )}
               <TextField
-                label="Ausnahmedaten (optional, kommagetrennt YYYY-MM-DD)"
+                label={t('scheduleDialog.excludeDates')}
                 value={excludeDatesStr}
                 onChange={e => setExcludeDatesStr(e.target.value)}
                 fullWidth
@@ -369,9 +371,9 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Abbrechen</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button onClick={handleSubmit} variant="contained" disabled={!canSubmit || submitting}>
-          {mode === 'create' ? 'Einplanen' : 'Speichern'}
+          {mode === 'create' ? t('scheduleDialog.create') : t('common.save')}
         </Button>
       </DialogActions>
     </Dialog>

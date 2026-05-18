@@ -8,6 +8,7 @@ import { createSchedule, deleteSchedule, listSchedules, updateSchedule, triggerS
 import ScheduleDialog from './ScheduleDialog'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useServerTime } from '../hooks/useServerTime'
+import { useTranslation } from 'react-i18next'
 
 type CalendarCell = {
   date: Date
@@ -15,8 +16,8 @@ type CalendarCell = {
   isToday: boolean
 }
 
-function formatMonthYear(date: Date): string {
-  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+function formatMonthYear(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 }
 
 function startOfDay(date: Date): Date {
@@ -70,9 +71,8 @@ function getMonthMatrix(anchor: Date): CalendarCell[] {
   return cells
 }
 
-const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
-
 export default function Schedule() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const apiBase = searchParams.get('api') ? String(searchParams.get('api')) : (import.meta.env.VITE_API_BASE ? String(import.meta.env.VITE_API_BASE) : '')
@@ -256,6 +256,16 @@ export default function Schedule() {
     navigate({ pathname: `/captures/${captureId}` as const, search: params.toString() })
   }
 
+  const weekdayLabels = [
+    t('schedule.weekdays.mo'),
+    t('schedule.weekdays.tu'),
+    t('schedule.weekdays.we'),
+    t('schedule.weekdays.th'),
+    t('schedule.weekdays.fr'),
+    t('schedule.weekdays.sa'),
+    t('schedule.weekdays.su'),
+  ]
+
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3 }}>
       <Paper sx={{ p: 2, borderRadius: 2 }}>
@@ -273,11 +283,11 @@ export default function Schedule() {
             <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.5}>
               {/* Monatsnavigation */}
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Tooltip title="Voriger Monat">
+                <Tooltip title={t('schedule.prevMonth')}>
                   <IconButton
                     size="small"
                     onClick={handlePrevMonth}
-                    aria-label="Voriger Monat"
+                    aria-label={t('schedule.prevMonth')}
                     sx={{
                       color: 'text.secondary',
                       '&:hover': {
@@ -290,13 +300,13 @@ export default function Schedule() {
                   </IconButton>
                 </Tooltip>
                 <Typography variant="subtitle1" sx={{ minWidth: 160, textAlign: 'center', fontWeight: 600 }}>
-                  {formatMonthYear(anchorDate)}
+                  {formatMonthYear(anchorDate, i18n.language)}
                 </Typography>
-                <Tooltip title="Nächster Monat">
+                <Tooltip title={t('schedule.nextMonth')}>
                   <IconButton
                     size="small"
                     onClick={handleNextMonth}
-                    aria-label="Nächster Monat"
+                    aria-label={t('schedule.nextMonth')}
                     sx={{
                       color: 'text.secondary',
                       '&:hover': {
@@ -327,7 +337,7 @@ export default function Schedule() {
                     },
                   }}
                 >
-                  Heute
+                  {t('common.today')}
                 </Button>
                 <Chip
                   size="small"
@@ -400,8 +410,8 @@ export default function Schedule() {
                 {/* Add button */}
                 {cell.date >= today && (
                   <Box sx={{ position: 'absolute', top: 4, left: 6 }}>
-                    <Tooltip title="Test einplanen">
-                      <IconButton size="small" onClick={(e) => openAddMenu(e.currentTarget as HTMLElement, cell.date)} aria-label="Test einplanen">
+                    <Tooltip title={t('schedule.addTest')}>
+                      <IconButton size="small" onClick={(e) => openAddMenu(e.currentTarget as HTMLElement, cell.date)} aria-label={t('schedule.addTest')}>
                         <Plus size={14} />
                       </IconButton>
                     </Tooltip>
@@ -412,7 +422,7 @@ export default function Schedule() {
                 <Stack spacing={0.5} sx={{ mt: 3 }}>
                   {(itemsByDay.get(dateKey(cell.date)) || []).map((item) => {
                     const prof = profiles.find(p => p.id === item.profileId)
-                    const label = item.title || prof?.name || 'Test'
+                    const label = item.title || prof?.name || t('common.test')
                     const time = (item.rule as any).time
                     
                     // Check if this schedule has run today
@@ -464,10 +474,10 @@ export default function Schedule() {
                           backgroundColor: bgColor,
                         }}
                         title={
-                          running ? 'Läuft…' :
-                          completed ? 'Erfolgreich abgeschlossen' :
-                          failed ? 'Fehlgeschlagen' :
-                          cancelled ? 'Abgebrochen' :
+                          running ? t('schedule.status.running') :
+                          completed ? t('schedule.status.completed') :
+                          failed ? t('schedule.status.failed') :
+                          cancelled ? t('schedule.status.cancelled') :
                           undefined
                         }
                       >
@@ -483,7 +493,7 @@ export default function Schedule() {
                           <Chip
                             size="small"
                             color={item.currentTabStatus === 'starting' ? 'warning' : 'success'}
-                            label={item.currentTabStatus === 'starting' ? 'Startet…' : 'Läuft'}
+                            label={item.currentTabStatus === 'starting' ? t('schedule.status.starting') : t('schedule.status.runningShort')}
                           />
                         )}
                         <IconButton size="small" onClick={(e) => openActionMenu(e.currentTarget as HTMLElement, item)}>
@@ -502,19 +512,19 @@ export default function Schedule() {
           <Stack direction="row" spacing={2} flexWrap="wrap">
             <Stack direction="row" spacing={0.5} alignItems="center">
               <CheckCircle size={14} color="green" />
-              <Typography variant="caption" color="text.secondary">Erfolgreich</Typography>
+              <Typography variant="caption" color="text.secondary">{t('schedule.legend.success')}</Typography>
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
               <XCircle size={14} color="red" />
-              <Typography variant="caption" color="text.secondary">Fehlgeschlagen</Typography>
+              <Typography variant="caption" color="text.secondary">{t('schedule.legend.failed')}</Typography>
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
               <Clock size={14} color="orange" />
-              <Typography variant="caption" color="text.secondary">Abgebrochen</Typography>
+              <Typography variant="caption" color="text.secondary">{t('schedule.legend.cancelled')}</Typography>
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <Chip size="small" color="success" label="Läuft" sx={{ height: 18, fontSize: '0.7rem' }} />
-              <Typography variant="caption" color="text.secondary">In Ausführung</Typography>
+              <Chip size="small" color="success" label={t('schedule.status.runningShort')} sx={{ height: 18, fontSize: '0.7rem' }} />
+              <Typography variant="caption" color="text.secondary">{t('schedule.legend.inProgress')}</Typography>
             </Stack>
           </Stack>
         </Box>
@@ -522,19 +532,19 @@ export default function Schedule() {
 
       {/* Add menu with profiles */}
       <Menu anchorEl={menuAnchor.el} open={Boolean(menuAnchor.el)} onClose={closeAddMenu}>
-        <MenuItem onClick={handleAddNewForDate}>Neuen Test hinzufügen</MenuItem>
+        <MenuItem onClick={handleAddNewForDate}>{t('schedule.addNew')}</MenuItem>
       </Menu>
 
       {/* Action menu for an existing schedule */}
       <Menu anchorEl={actionMenu.el} open={Boolean(actionMenu.el)} onClose={closeActionMenu}>
         <MenuItem disabled={!actionMenu.item || !actionMenu.item.currentTabId} onClick={() => { if (actionMenu.item && actionMenu.item.currentTabId) { handleOpenTab(actionMenu.item); closeActionMenu() } }}>
-          Tab öffnen
+          {t('schedule.openTab')}
         </MenuItem>
         <MenuItem
           disabled={!actionMenu.item || !actionMenu.item.lastCaptureId}
           onClick={() => { if (actionMenu.item && actionMenu.item.lastCaptureId) { handleShowCapture(actionMenu.item); closeActionMenu() } }}
         >
-          Test anzeigen
+          {t('schedule.viewTest')}
         </MenuItem>
         <Divider />
         <MenuItem 
@@ -551,13 +561,13 @@ export default function Schedule() {
             } 
           }}
         >
-          <Play size={14} style={{ marginRight: 8 }} /> Jetzt ausführen
+          <Play size={14} style={{ marginRight: 8 }} /> {t('schedule.runNow')}
         </MenuItem>
         <MenuItem disabled={!actionMenu.item} onClick={() => { if (actionMenu.item) { handleEdit(actionMenu.item); closeActionMenu() } }}>
-          <Pencil size={14} style={{ marginRight: 8 }} /> Bearbeiten
+          <Pencil size={14} style={{ marginRight: 8 }} /> {t('common.edit')}
         </MenuItem>
         <MenuItem disabled={!actionMenu.item} onClick={() => { if (actionMenu.item) { handleDelete(actionMenu.item); closeActionMenu() } }}>
-          <Trash2 size={14} style={{ marginRight: 8 }} /> Löschen
+          <Trash2 size={14} style={{ marginRight: 8 }} /> {t('common.delete')}
         </MenuItem>
       </Menu>
 
@@ -580,11 +590,11 @@ export default function Schedule() {
         aria-describedby="delete-dialog-description"
       >
         <DialogTitle id="delete-dialog-title">
-          Schedule löschen
+          {t('schedule.deleteTitle')}
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Schedule wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            {t('schedule.deleteMessage')}
                   {deleteConfirm.item && (
               <Box sx={{ 
                 mt: 1, 
@@ -595,10 +605,10 @@ export default function Schedule() {
                 borderRadius: 1 
               }}>
                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                  {deleteConfirm.item.title || 'Unbenannter Schedule'}
+                  {deleteConfirm.item.title || t('schedule.unnamed')}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {deleteConfirm.item.rule.type === 'once' ? 'Einmalig' : deleteConfirm.item.rule.type === 'daily' ? 'Täglich' : 'Wöchentlich'} • {(deleteConfirm.item.rule as any).time}
+                  {deleteConfirm.item.rule.type === 'once' ? t('scheduleDialog.rule.once') : deleteConfirm.item.rule.type === 'daily' ? t('scheduleDialog.rule.daily') : t('scheduleDialog.rule.weekly')} • {(deleteConfirm.item.rule as any).time}
                 </Typography>
               </Box>
             )}
@@ -606,10 +616,10 @@ export default function Schedule() {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelDelete} color="primary">
-            Abbrechen
+            {t('common.cancel')}
           </Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
-            Löschen
+            {t('common.delete')}
           </Button>
         </DialogActions>
       </Dialog>
