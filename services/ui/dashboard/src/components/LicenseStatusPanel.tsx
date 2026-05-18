@@ -110,6 +110,12 @@ export default function LicenseStatusPanel({ apiBase, active }: LicenseStatusPan
     }
   }, [data])
 
+  const fpgaTemp = useMemo(() => {
+    if (!data || data === 'loading') return null
+    const val = data['fpga_temperature_celsius']
+    return typeof val === 'number' ? val : null
+  }, [data])
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(rawString)
@@ -196,8 +202,8 @@ export default function LicenseStatusPanel({ apiBase, active }: LicenseStatusPan
             <StatCard
               icon={<Thermometer size={16} />}
               label={t('license.fpgaTemp')}
-              value={data['fpga_temperature_celsius'] != null ? `${data['fpga_temperature_celsius']} \u00b0C` : '\u2014'}
-              accentColor={data['fpga_temperature_celsius'] != null && data['fpga_temperature_celsius'] > 70 ? '#ff0b55' : '#ff0b55'}
+              value={fpgaTemp != null ? `${fpgaTemp} \u00b0C` : '\u2014'}
+              accentColor={fpgaTemp != null && fpgaTemp > 70 ? '#ff0b55' : undefined}
             />
 
             <StatCard

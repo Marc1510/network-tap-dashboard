@@ -1,157 +1,157 @@
 # Network TAP Dashboard
 
-Ein webbasiertes Monitoring- und Management-System für Network TAP (Test Access Point) Aufzeichnungen. Das System ermöglicht die Steuerung, Überwachung und Analyse von Netzwerkverkehr über eine moderne Weboberfläche.
+A web-based monitoring and management system for Network TAP (Test Access Point) recordings. The system allows controlling, monitoring, and analyzing network traffic through a modern web interface.
 
-## Projektbeschreibung
+## Project Description
 
-Das Network TAP Dashboard ist eine integrierte Lösung zur Verwaltung von Netzwerk-Traffic-Captures auf einem Raspberry Pi oder ähnlichen Linux-Systemen. Es kombiniert ein Python-basiertes Backend mit einer modernen React-Oberfläche und bietet:
+The Network TAP Dashboard is an integrated solution for managing network traffic captures on a Raspberry Pi or similar Linux systems. It combines a Python-based backend with a modern React frontend and offers:
 
-- Webbasierte Steuerung von tcpdump-Captures
-- Echtzeit-Überwachung laufender Aufzeichnungen
-- Verwaltung von Test-Profilen und Konfigurationen
-- Zeitgesteuerte Aufzeichnungen (Scheduler)
-- Analyse und Download von Capture-Dateien
-- System-Ressourcen-Monitoring
-- SSH-Terminal-Integration
-- Bridge-Konfiguration für TAP-Interfaces (RT0/RT2)
+- Web-based control of tcpdump captures
+- Real-time monitoring of active recordings
+- Management of test profiles and configurations
+- Scheduled recordings (scheduler)
+- Analysis and downloading of capture files
+- System resource monitoring
+- SSH terminal integration
+- Bridge configuration for TAP interfaces (RT0/RT2)
 
-Das System wurde speziell für den Einsatz mit Real-Time HAT Hardware entwickelt und unterstützt die Konfiguration von Bridge-Interfaces zur transparenten Netzwerk-Überwachung.
+The system was specifically developed for use with Real-Time HAT hardware and supports the configuration of bridge interfaces for transparent network monitoring.
 
-## Systemanforderungen
+## System Requirements
 
-- Debian-basiertes Linux-System (z.B. Raspberry Pi OS)
-- Python 3.8 oder höher
-- Node.js 22.x oder höher
-- Root-Rechte für die Installation
-- tcpdump installiert
-- Nginx Webserver
+- Debian-based Linux system (e.g., Raspberry Pi OS)
+- Python 3.8 or higher
+- Node.js 22.x or higher
+- Root privileges for installation
+- tcpdump installed
+- Nginx web server
 
 ## Installation
 
-### 1. Repository klonen
+### 1. Clone the Repository
 
 ```bash
 git clone <repository-url>
 cd network-tap-dashboard
 ```
 
-### 2. Setup-Skript ausführen
+### 2. Run the Setup Script
 
-Das Setup-Skript muss mit Root-Rechten (sudo) ausgeführt werden:
+The setup script must be executed with root privileges (sudo):
 
 ```bash
 sudo ./setup.sh
 ```
 
-Das interaktive Menü bietet folgende Optionen:
+The interactive menu provides the following options:
 
-1. **Vollständige Neuinstallation** - Installiert und konfiguriert das gesamte System:
-   - Erstellt Python Virtual Environment
-   - Installiert Backend-Abhängigkeiten
-   - Installiert Node.js 22.x (falls erforderlich)
-   - Baut das Frontend
-   - Konfiguriert Nginx
-   - Startet alle Services
+1. **Full Fresh Installation** - Installs and configures the entire system:
+   - Creates a Python virtual environment
+   - Installs backend dependencies
+   - Installs Node.js 22.x (if required)
+   - Builds the frontend
+   - Configures Nginx
+   - Starts all services
 
-2. **Dashboard neu bauen** - Aktualisiert nur das Frontend
-3. **API/Backend neu bauen** - Aktualisiert nur das Backend
-4. **Services starten** - Startet API und Nginx
-5. **Services stoppen** - Stoppt API und Nginx
-6. **Services neu starten** - Startet Services neu
-7. **Status anzeigen** - Zeigt Status aller Komponenten
-8. **Autostart einrichten** - Konfiguriert systemd Services für automatischen Start
-9. **TAP-Bridge einrichten** - Konfiguriert Bridge br0 für RT0/RT2 Interfaces
-10. **TAP-Bridge Status** - Zeigt Bridge-Konfiguration und Status
-11. **Beenden**
+2. **Rebuild Dashboard** - Updates only the frontend
+3. **Rebuild API/Backend** - Updates only the backend
+4. **Start Services** - Starts API and Nginx
+5. **Stop Services** - Stops API and Nginx
+6. **Restart Services** - Restarts services
+7. **Show Status** - Displays the status of all components
+8. **Configure Autostart** - Configures systemd services for automatic startup
+9. **Setup TAP Bridge** - Configures bridge br0 for RT0/RT2 interfaces
+10. **TAP Bridge Status** - Displays bridge configuration and status
+11. **Exit**
 
-### 3. Erste Installation
+### 3. Initial Installation
 
-Für eine Erstinstallation wähle Option 1 (Vollständige Neuinstallation). Das Skript wird:
+For a first-time installation, select Option 1 (Full Fresh Installation). The script will:
 
-- Alle erforderlichen Verzeichnisse anlegen (`capture/exports`, `capture/tmp/test_runtime`)
-- Python Virtual Environment erstellen
-- Backend-Abhängigkeiten installieren (FastAPI, uvicorn, etc.)
-- Node.js und npm installieren
-- Frontend bauen und deployen
-- Nginx konfigurieren und starten
-- API-Server starten
+- Create all required directories (`capture/exports`, `capture/tmp/test_runtime`)
+- Create a Python virtual environment
+- Install backend dependencies (FastAPI, uvicorn, etc.)
+- Install Node.js and npm
+- Build and deploy the frontend
+- Configure and start Nginx
+- Start the API server
 
-### 4. Zugriff auf das System
+### 4. Accessing the System
 
-Nach erfolgreicher Installation ist das Dashboard erreichbar unter:
+After a successful installation, the dashboard is accessible at:
 
 - **Dashboard**: `http://<raspberry-pi-ip>:80`
-- **API Dokumentation**: `http://<raspberry-pi-ip>:8000/docs`
+- **API Documentation**: `http://<raspberry-pi-ip>:8000/docs`
 
-### 5. Autostart konfigurieren (optional)
+### 5. Configure Autostart (Optional)
 
-Um das System beim Booten automatisch zu starten:
+To automatically start the system during boot:
 
 ```bash
 sudo ./setup.sh
-# Wähle Option 8: Autostart einrichten
+# Select Option 8: Configure Autostart
 ```
 
-Dies erstellt systemd Services für:
+This creates systemd services for:
 - `ba-tap-api.service` - Backend API
 - `nginx.service` - Webserver
 
-## Projektstruktur
+## Project Structure
 
 ```
 network-tap-dashboard/
-├── setup.sh                      # Haupt-Setup-Skript mit interaktivem Menü
-├── capture/                      # Verzeichnis für Captures und Konfigurationen
-│   ├── exports/                  # Gespeicherte Capture-Dateien
-│   │   └── captures_meta.jsonl   # Metadata aller Captures
-│   ├── profiles/                 # Test-Profile (JSON)
+├── setup.sh                      # Main setup script with interactive menu
+├── capture/                      # Directory for captures and configurations
+│   ├── exports/                  # Saved capture files
+│   │   └── captures_meta.jsonl   # Metadata for all captures
+│   ├── profiles/                 # Test profiles (JSON)
 │   │   ├── default.json
 │   │   └── tsn-traffic.json
 │   └── tmp/
-│       └── test_runtime/         # Runtime-State für laufende Tests
+│       └── test_runtime/         # Runtime state for active tests
 ├── services/
-│   ├── api/                      # Python Backend (FastAPI)
-│   │   ├── main.py               # API Einstiegspunkt
-│   │   ├── config.py             # Konfiguration
-│   │   ├── deps.py               # Dependency Injection
-│   │   ├── schemas.py            # Pydantic Schemas
-│   │   ├── profile_service.py    # Test-Profile Service
-│   │   ├── ssh_service.py        # SSH-Terminal Service
-│   │   ├── scheduling.py         # Zeitgesteuerte Tests
-│   │   ├── requirements.txt      # Python Abhängigkeiten
-│   │   ├── routes/               # API Endpunkte
-│   │   │   ├── captures.py       # Capture-Verwaltung
-│   │   │   ├── profiles.py       # Profile-Verwaltung
-│   │   │   ├── tabs.py           # Test-Tab-Verwaltung
-│   │   │   ├── ssh.py            # SSH-Terminal
-│   │   │   ├── system.py         # System-Informationen
-│   │   │   └── license.py        # Lizenz-Informationen
-│   │   └── utils/                # Hilfsfunktionen
+│   ├── api/                      # Python backend (FastAPI)
+│   │   ├── main.py               # API entry point
+│   │   ├── config.py             # Configuration
+│   │   ├── deps.py               # Dependency injection
+│   │   ├── schemas.py            # Pydantic schemas
+│   │   ├── profile_service.py    # Test profile service
+│   │   ├── ssh_service.py        # SSH terminal service
+│   │   ├── scheduling.py         # Scheduled tests
+│   │   ├── requirements.txt      # Python dependencies
+│   │   ├── routes/               # API endpoints
+│   │   │   ├── captures.py       # Capture management
+│   │   │   ├── profiles.py       # Profile management
+│   │   │   ├── tabs.py           # Test tab management
+│   │   │   ├── ssh.py            # SSH terminal
+│   │   │   ├── system.py         # System information
+│   │   │   └── license.py        # License information
+│   │   └── utils/                # Helper functions
 │   │       ├── capture_utils.py
 │   │       ├── file_operations.py
 │   │       ├── metadata.py
 │   │       └── process_utils.py
-│   ├── agent/                    # Test-Execution Agent
-│   │   ├── test_manager.py       # Haupt-Test-Manager
-│   │   ├── capture_manager.py    # tcpdump-Steuerung
-│   │   ├── tab_manager.py        # Tab-Verwaltung
-│   │   ├── run_executor.py       # Test-Ausführung
-│   │   ├── process_manager.py    # Prozess-Lifecycle
-│   │   └── filter_builder.py     # BPF-Filter-Generator
+│   ├── agent/                    # Test execution agent
+│   │   ├── test_manager.py       # Main test manager
+│   │   ├── capture_manager.py    # tcpdump control
+│   │   ├── tab_manager.py        # Tab management
+│   │   ├── run_executor.py       # Test execution
+│   │   ├── process_manager.py    # Process lifecycle
+│   │   └── filter_builder.py     # BPF filter generator
 │   └── ui/
-│       └── dashboard/            # React Frontend (Vite)
-│           ├── package.json      # npm Abhängigkeiten
-│           ├── vite.config.ts    # Vite Konfiguration
-│           ├── index.html        # HTML Template
+│       └── dashboard/            # React frontend (Vite)
+│           ├── package.json      # npm dependencies
+│           ├── vite.config.ts    # Vite configuration
+│           ├── index.html        # HTML template
 │           ├── src/
-│           │   ├── main.tsx      # React Einstiegspunkt
-│           │   ├── App.tsx       # Haupt-Komponente
-│           │   ├── api/          # API Client
+│           │   ├── main.tsx      # React entry point
+│           │   ├── App.tsx       # Main component
+│           │   ├── api/          # API client
 │           │   │   ├── client.ts
 │           │   │   ├── captures.ts
 │           │   │   ├── schedules.ts
 │           │   │   └── system.ts
-│           │   ├── components/   # React Komponenten
+│           │   ├── components/   # React components
 │           │   │   ├── CapturesList.tsx
 │           │   │   ├── CaptureDetail.tsx
 │           │   │   ├── TestStarter.tsx
@@ -160,220 +160,220 @@ network-tap-dashboard/
 │           │   │   ├── SystemResources.tsx
 │           │   │   ├── SshTerminal.tsx
 │           │   │   └── common/
-│           │   ├── hooks/        # React Hooks
-│           │   ├── types/        # TypeScript Typen
-│           │   └── utils/        # Hilfsfunktionen
-│           └── dist/             # Gebautes Frontend (nach npm build)
-└── README.md                     # Diese Datei
+│           │   ├── hooks/        # React hooks
+│           │   ├── types/        # TypeScript types
+│           │   └── utils/        # Helper functions
+│           └── dist/             # Built frontend (after npm run build)
+└── README.md                     # This file
 ```
 
-## Technologie-Stack
+## Technology Stack
 
 ### Backend (API)
 
 - **Framework**: FastAPI (Python)
 - **ASGI Server**: Uvicorn
-- **Validierung**: Pydantic v2
+- **Validation**: Pydantic v2
 - **Scheduling**: APScheduler
 - **SSH**: asyncssh
-- **Prozess-Management**: psutil
-- **Capture-Tool**: tcpdump
+- **Process Management**: psutil
+- **Capture Tool**: tcpdump
 
-Die API läuft standardmäßig auf Port 8000 und bietet:
-- RESTful API Endpunkte
-- WebSocket Support für Echtzeit-Updates
-- Automatische API-Dokumentation (OpenAPI/Swagger)
-- Asynchrone Request-Verarbeitung
+The API runs by default on port 8000 and offers:
+- RESTful API endpoints
+- WebSocket support for real-time updates
+- Automatic API documentation (OpenAPI/Swagger)
+- Asynchronous request processing
 
 ### Frontend (Dashboard)
 
 - **Framework**: React 19
-- **Build-Tool**: Vite 7
-- **Sprache**: TypeScript
-- **UI-Library**: Material-UI (MUI)
+- **Build Tool**: Vite 7
+- **Language**: TypeScript
+- **UI Library**: Material-UI (MUI)
 - **Icons**: Lucide React, MUI Icons
 - **Terminal**: xterm.js
 - **Routing**: React Router v6
 - **State Management**: React Hooks
 
-Das Frontend wird als statische Single-Page-Application (SPA) gebaut und von Nginx ausgeliefert.
+The frontend is built as a static Single Page Application (SPA) and is served by Nginx.
 
-### Webserver & Proxy
+### Web Server & Proxy
 
-- **Nginx**: Reverse Proxy für API und statisches Hosting
-  - Port 80: Dashboard (statische Dateien)
-  - `/api/*` wird zu `http://127.0.0.1:8000/` weitergeleitet
+- **Nginx**: Reverse proxy for API and static hosting
+  - Port 80: Dashboard (static files)
+  - `/api/*` is forwarded to `http://127.0.0.1:8000/`
 
-### System-Integration
+### System Integration
 
-- **systemd**: Services für Autostart
-- **tcpdump**: Netzwerk-Capture mit Capabilities (`cap_net_raw`, `cap_net_admin`)
-- **Bridge-Utils**: Verwaltung von Linux-Bridge-Interfaces
+- **systemd**: Services for autostart
+- **tcpdump**: Network capture with capabilities (`cap_net_raw`, `cap_net_admin`)
+- **Bridge-Utils**: Management of Linux bridge interfaces
 
-## Verwendung
+## Usage
 
-### Tests starten
+### Starting Tests
 
-1. Navigiere zu "Test starten" im Dashboard
-2. Wähle ein Test-Profil oder erstelle eine neue Konfiguration
-3. Konfiguriere:
-   - Interface (z.B. eth0, RT0, RT2)
-   - BPF-Filter (optional)
-   - Ring-Buffer-Einstellungen
-   - Stopp-Bedingungen
-4. Starte den Test
+1. Navigate to "Start Test" in the dashboard.
+2. Select a test profile or create a new configuration.
+3. Configure:
+   - Interface (e.g., eth0, RT0, RT2)
+   - BPF Filter (optional)
+   - Ring buffer settings
+   - Stop conditions
+4. Start the test.
 
-### Test-Profile verwalten
+### Managing Test Profiles
 
-- Test-Profile werden als JSON-Dateien in `capture/profiles/` gespeichert
-- Profile können über das Dashboard erstellt, bearbeitet und gelöscht werden
-- Jedes Profil enthält vordefinierte Capture-Einstellungen
+- Test profiles are saved as JSON files in `capture/profiles/`.
+- Profiles can be created, edited, and deleted via the dashboard.
+- Each profile contains predefined capture settings.
 
-### Captures verwalten
+### Managing Captures
 
-- Alle durchgeführten Tests erscheinen in "Aufzeichnungen"
-- Captures können heruntergeladen werden (einzeln oder als ZIP)
-- Metadaten werden automatisch erfasst (Start-/Endzeit, Interface, Filter, etc.)
-- Status-Tracking für laufende und abgeschlossene Tests
+- All conducted tests appear in "Captures".
+- Captures can be downloaded (individually or as a ZIP archive).
+- Metadata is automatically recorded (start/end time, interface, filter, etc.).
+- Status tracking for active and completed tests.
 
-### Zeitgesteuerte Tests
+### Scheduled Tests
 
-- Unter "Zeitplan" können Tests für bestimmte Zeitpunkte geplant werden
-- Unterstützt einmalige und wiederkehrende Ausführungen
-- Automatische Ausführung im Hintergrund
+- Under "Schedule", tests can be scheduled for specific times.
+- Supports both one-time and recurring executions.
+- Automatic execution in the background.
 
-### System-Überwachung
+### System Monitoring
 
-- Dashboard zeigt Live-Informationen:
-  - CPU-Auslastung
-  - Speicher-Nutzung
-  - Festplatten-Speicher
-  - Netzwerk-Interfaces
-  - Laufende Prozesse
+- The dashboard displays live information:
+  - CPU load
+  - Memory usage
+  - Disk space
+  - Network interfaces
+  - Running processes
 
-### TAP-Bridge Konfiguration
+### TAP Bridge Configuration
 
-Für transparente Netzwerk-Überwachung können RT0 und RT2 Interfaces gebridged werden:
+For transparent network monitoring, the RT0 and RT2 interfaces can be bridged:
 
 ```bash
 sudo ./setup.sh
-# Wähle Option 9: TAP-Bridge einrichten (RT0 <-> RT2)
+# Select Option 9: Setup TAP Bridge (RT0 <-> RT2)
 ```
 
-Dies konfiguriert:
-- Bridge-Interface `br0`
-- RT0 und RT2 als Bridge-Mitglieder
-- Deaktivierung von IPv6 und IP-Adressen auf TAP-Interfaces
-- Bridge-Netfilter-Deaktivierung für transparenten L2-Traffic
+This configures:
+- Bridge interface `br0`
+- RT0 and RT2 as bridge members
+- Disabling of IPv6 and IP addresses on TAP interfaces
+- Disabling of bridge netfilter for transparent Layer 2 traffic
 
-Status prüfen:
+To check status:
 ```bash
 sudo ./setup.sh
-# Wähle Option 10: TAP-Bridge Status
+# Select Option 10: TAP Bridge Status
 ```
 
-## Entwicklung
+## Development
 
-### Backend-Entwicklung
+### Backend Development
 
 ```bash
-# Virtual Environment aktivieren
+# Activate virtual environment
 source .venv/bin/activate
 
-# API im Development-Modus starten (mit Auto-Reload)
-cd /pfad/zum/projekt
+# Start API in development mode (with auto-reload)
+cd /path/to/project
 export PYTHONPATH=$PWD
 python -m uvicorn services.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Frontend-Entwicklung
+### Frontend Development
 
 ```bash
 cd services/ui/dashboard
 
-# Development-Server starten (mit Hot-Reload)
+# Start development server (with hot-reload)
 npm run dev
 
-# Build für Produktion
+# Build for production
 npm run build
 ```
 
-Der Development-Server läuft auf Port 5173 und proxied API-Requests an `http://localhost:8000`.
+The development server runs on port 5173 and proxies API requests to `http://localhost:8000`.
 
-### API-Dokumentation
+### API Documentation
 
-Die interaktive API-Dokumentation ist verfügbar unter:
+Interactive API documentation is available at:
 - Swagger UI: `http://<ip>:8000/docs`
 - ReDoc: `http://<ip>:8000/redoc`
 
-## Logs und Fehlersuche
+## Logs and Troubleshooting
 
-### API-Logs anzeigen
+### View API Logs
 
 ```bash
-# Wenn API über systemd läuft
+# If API runs via systemd
 sudo journalctl -u ba-tap-api.service -f
 
-# Wenn API manuell gestartet wurde
+# If API was started manually
 tail -f /var/log/ba-tap-api.log
 ```
 
-### Nginx-Logs anzeigen
+### View Nginx Logs
 
 ```bash
-# Access Logs
+# Access logs
 sudo tail -f /var/log/nginx/access.log
 
-# Error Logs
+# Error logs
 sudo tail -f /var/log/nginx/error.log
 ```
 
-### Service-Status prüfen
+### Check Service Status
 
 ```bash
-# Via Setup-Skript
+# Via setup script
 sudo ./setup.sh
-# Wähle Option 7: Status anzeigen
+# Select Option 7: Show Status
 
-# Oder manuell
+# Or manually
 sudo systemctl status ba-tap-api.service
 sudo systemctl status nginx
 ```
 
-## Wartung
+## Maintenance
 
-### Services neu starten
-
-```bash
-sudo ./setup.sh
-# Wähle Option 6: Services neu starten
-```
-
-### Backend-Updates einspielen
+### Restarting Services
 
 ```bash
 sudo ./setup.sh
-# Wähle Option 3: API/Backend neu bauen
+# Select Option 6: Restart Services
 ```
 
-### Frontend-Updates einspielen
+### Applying Backend Updates
 
 ```bash
 sudo ./setup.sh
-# Wähle Option 2: Dashboard neu bauen
+# Select Option 3: Rebuild API/Backend
 ```
 
-### Alte Captures aufräumen
+### Applying Frontend Updates
 
-Captures werden in `capture/exports/` gespeichert und sollten regelmäßig manuell aufgeräumt werden, um Speicherplatz freizugeben.
+```bash
+sudo ./setup.sh
+# Select Option 2: Rebuild Dashboard
+```
 
-## Lizenz
+### Cleaning Up Old Captures
 
-Siehe LICENSE-Datei für Details.
+Captures are saved in `capture/exports/` and should be cleaned up manually on a regular basis to free up disk space.
 
-## Unterstützung
+## License
 
-Bei Problemen oder Fragen:
-1. Prüfe die Logs (siehe Abschnitt "Logs und Fehlersuche")
-2. Überprüfe den Service-Status mit dem Setup-Skript
-3. Stelle sicher, dass alle Voraussetzungen erfüllt sind
+See the LICENSE file for details.
+
+## Support
+
+For issues or questions:
+1. Check the logs (see the "Logs and Troubleshooting" section).
+2. Check the service status using the setup script.
+3. Ensure that all system requirements are met.
