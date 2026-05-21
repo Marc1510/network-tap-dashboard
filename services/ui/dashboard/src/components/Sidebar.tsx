@@ -188,6 +188,13 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
     if (itemPath === '/') {
       return location.pathname === '/'
     }
+    if (itemPath === '/test-config') {
+      return (
+        location.pathname === '/test-config' ||
+        location.pathname === '/test-config/new' ||
+        (location.pathname.startsWith('/test-config/') && !location.pathname.startsWith('/test-config/local-tsn-network'))
+      )
+    }
     return location.pathname.startsWith(itemPath)
   }
 
@@ -197,6 +204,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
     { label: t('nav.captures'), to: '/captures', icon: <FolderOpen size={18} /> },
     { label: t('nav.schedule'), to: '/schedule', icon: <CalendarClock size={18} /> },
     { label: t('nav.testConfig'), to: '/test-config', icon: <Settings size={18} /> },
+    { label: t('nav.localTsnNetwork'), to: '/test-config/local-tsn-network', icon: <Settings size={18} /> },
   ]
   
   return (

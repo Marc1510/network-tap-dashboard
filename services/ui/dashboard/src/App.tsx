@@ -15,6 +15,7 @@ import { WindowsProvider } from './components/windows/WindowsContext'
 import WindowsLayer from './components/windows/WindowsLayer'
 import TestProfilesList from './components/TestProfilesList'
 import TestProfileEditor from './components/TestProfileEditor'
+import LocalTsnNetworkPage from './components/LocalTsnNetworkPage'
 import TestStarter from './components/TestStarter'
 import Schedule from './components/Schedule'
 import QuickActionBar from './components/QuickActionBar'
@@ -74,6 +75,7 @@ function App() {
     if (p === '/captures') return t('app.page.captures')
     if (p === '/schedule') return t('app.page.schedule')
     if (p === '/test-config/new') return t('app.page.testConfigNew')
+    if (p === '/test-config/local-tsn-network') return t('app.page.localTsnNetwork')
     if (p.startsWith('/test-config/')) return t('app.page.testConfig')
     if (p === '/test-config') return t('app.page.testConfig')
     return t('app.title')
@@ -280,6 +282,7 @@ function App() {
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/test-config" element={<TestProfilesList apiBase={apiBase} />} />
             <Route path="/test-config/new" element={<TestProfileEditor apiBase={apiBase} />} />
+            <Route path="/test-config/local-tsn-network" element={<LocalTsnNetworkPage />} />
             <Route path="/test-config/:id" element={<TestProfileEditor apiBase={apiBase} />} />
           </Routes>
         </Container>
