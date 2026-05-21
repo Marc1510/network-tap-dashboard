@@ -25,13 +25,22 @@ function buildWebSocketUrl(path: string, apiBase?: string): string {
   }
 }
 
-import { useWindows } from './windows/WindowsContext'
+import { useWindows, type SshWindowConnection } from './windows/WindowsContext'
 
-export default function SshTerminal({ variant = 'page', windowId, setCloseGuard }: { variant?: 'page' | 'window', windowId?: string, setCloseGuard?: (fn?: (() => Promise<boolean> | boolean)) => void } = {}) {
+type SshTerminalProps = {
+  variant?: 'page' | 'window'
+  windowId?: string
+  setCloseGuard?: (fn?: (() => Promise<boolean> | boolean)) => void
+  initialConnection?: SshWindowConnection
+}
+
+export default function SshTerminal({ variant = 'page', windowId, setCloseGuard, initialConnection }: SshTerminalProps = {}) {
   const { t } = useTranslation()
   const apiBase = useMemo(() => (import.meta.env.VITE_API_BASE ? String(import.meta.env.VITE_API_BASE) : ''), [])
   const [users, setUsers] = useState<SshUser[]>([])
-  const [username, setUsername] = useState('')
+  const [host, setHost] = useState(initialConnection?.host || 'localhost')
+  const [port, setPort] = useState(String(initialConnection?.port || 22))
+  const [username, setUsername] = useState(initialConnection?.username || '')
   const [password, setPassword] = useState('')
   const [connecting, setConnecting] = useState(false)
   const [connected, setConnected] = useState(false)
@@ -51,6 +60,19 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
   const [showOverlay, setShowOverlay] = useState(true)
   const closeResolveRef = useRef<((v: boolean) => void) | null>(null)
   const [closeAskOpen, setCloseAskOpen] = useState(false)
+  const [hostPortTouched, setHostPortTouched] = useState(false)
+
+  const userOptions = useMemo(() => {
+    if (!username || users.some((u) => u.username === username)) return users
+    return [{ username }, ...users]
+  }, [users, username])
+
+  useEffect(() => {
+    if (hostPortTouched) return
+    if (initialConnection?.host) setHost(initialConnection.host)
+    if (initialConnection?.port) setPort(String(initialConnection.port))
+    if (initialConnection?.username) setUsername(initialConnection.username)
+  }, [initialConnection, hostPortTouched])
 
   // Register close guard with parent (WindowsLayer)
   useEffect(() => {
@@ -126,16 +148,16 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
     return () => { canceled = true }
   }, [apiBase])
 
-  // Standardauswahl: immer ersten Nutzer wählen, wenn vorhanden
+  // Standardauswahl: ersten Nutzer waehlen, wenn noch keiner gesetzt ist
   useEffect(() => {
     if (users.length === 0) {
-      if (username) setUsername('')
+      if (!username && initialConnection?.username) setUsername(initialConnection.username)
       return
     }
-    if (!username || !users.some(u => u.username === username)) {
+    if (!username) {
       setUsername(users[0].username)
     }
-  }, [users])
+  }, [users, username, initialConnection?.username])
 
   const handleCreateUser = async (value?: string) => {
     const name = String(value || '').trim()
@@ -186,6 +208,12 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
 
   const handleConnect = async () => {
     if (connecting || connected) return
+    const targetHost = String(host || '').trim()
+    const targetPort = Number(port)
+    if (!targetHost || !Number.isInteger(targetPort) || targetPort < 1 || targetPort > 65535) {
+      termObj.current?.writeln(`\u001b[31m${t('ssh.errorMessage', { message: t('ssh.invalidHostOrPort') })}\u001b[0m`)
+      return
+    }
     setConnecting(true)
     const path = '/api/ssh/ws'
     const url = buildWebSocketUrl(path, apiBase)
@@ -195,7 +223,7 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
     ws.onopen = () => {
       // Initial connect message
       const dims = termObj.current ? { cols: termObj.current.cols, rows: termObj.current.rows } : { cols: 80, rows: 24 }
-      ws.send(JSON.stringify({ type: 'connect', host: 'localhost', port: 22, username, password, ...dims }))
+      ws.send(JSON.stringify({ type: 'connect', host: targetHost, port: targetPort, username, password, ...dims }))
     }
     ws.onmessage = (ev) => {
       try {
@@ -206,8 +234,9 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
             setConnecting(false)
             termObj.current?.writeln(`\u001b[32m${t('ssh.connected')}\u001b[0m`)
             setShowOverlay(false)
-            if (variant === 'window' && windowId && username) {
-              try { updateWindow(windowId, { title: `SSH: ${username}` }) } catch {}
+            if (variant === 'window' && windowId) {
+              const label = username ? `${username}@${targetHost}` : targetHost
+              try { updateWindow(windowId, { title: `SSH: ${label}` }) } catch {}
             }
           } else if (msg.status === 'error') {
             setConnecting(false)
@@ -260,6 +289,11 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
     }
   }
 
+  const parsedPort = Number(port)
+  const portValid = Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535
+  const hostValid = String(host || '').trim().length > 0
+  const connectDisabled = connecting || !password || !username || !hostValid || !portValid
+
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3, height: variant === 'window' ? '100%' : 'auto' }}>
       <Paper sx={{ p: 0, borderRadius: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', height: variant === 'window' ? '100%' : 'auto' }}>
@@ -283,7 +317,7 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
                     }
                   }}
                   renderValue={(selected) => {
-                    if (!selected) return users.length === 0 ? t('ssh.noUsers') : t('ssh.selectUser')
+                    if (!selected) return userOptions.length === 0 ? t('ssh.noUsers') : t('ssh.selectUser')
                     return selected
                   }}
                   MenuProps={{
@@ -295,7 +329,7 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
                     <em>—</em>
                   </MenuItem>
                   <MenuItem value="__create__"><b>{t('ssh.createUserAction')}</b></MenuItem>
-                  {users.map(u => (
+                  {userOptions.map((u) => (
                     <MenuItem key={u.username} value={u.username}>
                       <ListItemText primary={u.username} />
                       <ListItemIcon>
@@ -312,6 +346,32 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
                   ))}
                 </Select>
               </FormControl>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <TextField
+                  size="small"
+                  label={t('ssh.host')}
+                  value={host}
+                  onChange={(e) => {
+                    setHost(e.target.value)
+                    setHostPortTouched(true)
+                  }}
+                  disabled={connecting || connected}
+                  fullWidth
+                />
+                <TextField
+                  size="small"
+                  label={t('ssh.port')}
+                  value={port}
+                  onChange={(e) => {
+                    setPort(e.target.value)
+                    setHostPortTouched(true)
+                  }}
+                  disabled={connecting || connected}
+                  error={!portValid}
+                  helperText={portValid ? '' : t('ssh.invalidPort')}
+                  sx={{ width: { xs: '100%', sm: 140 } }}
+                />
+              </Stack>
               <TextField
                 size="small"
                 type="password"
@@ -323,7 +383,7 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
               />
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {!connected ? (
-                  <Button variant="contained" color="primary" onClick={handleConnect} disabled={connecting || !password || !username} startIcon={<Plug2 size={16} />} fullWidth>
+                  <Button variant="contained" color="primary" onClick={handleConnect} disabled={connectDisabled} startIcon={<Plug2 size={16} />} fullWidth>
                     {connecting ? t('ssh.connecting') : t('ssh.connect')}
                   </Button>
                 ) : (
@@ -358,8 +418,8 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
                       if (v === '__create__') { setCreateOpen(true) } else { setUsername(v) }
                     }}
                     renderValue={(selected) => {
-                      if (!selected) return users.length === 0 ? t('ssh.noUsers') : t('ssh.selectUser')
-                      return selected as any
+                      if (!selected) return userOptions.length === 0 ? t('ssh.noUsers') : t('ssh.selectUser')
+                      return selected
                     }}
                     MenuProps={{
                       anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
@@ -368,7 +428,7 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
                   >
                     <MenuItem value=""><em>—</em></MenuItem>
                     <MenuItem value="__create__"><b>{t('ssh.createUserAction')}</b></MenuItem>
-                    {users.map(u => (
+                    {userOptions.map((u) => (
                       <MenuItem key={u.username} value={u.username}>
                         <ListItemText primary={u.username} />
                         <ListItemIcon>
@@ -380,9 +440,35 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard 
                     ))}
                   </Select>
                 </FormControl>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <TextField
+                    size="small"
+                    label={t('ssh.host')}
+                    value={host}
+                    onChange={(e) => {
+                      setHost(e.target.value)
+                      setHostPortTouched(true)
+                    }}
+                    disabled={connecting}
+                    fullWidth
+                  />
+                  <TextField
+                    size="small"
+                    label={t('ssh.port')}
+                    value={port}
+                    onChange={(e) => {
+                      setPort(e.target.value)
+                      setHostPortTouched(true)
+                    }}
+                    disabled={connecting}
+                    error={!portValid}
+                    helperText={portValid ? '' : t('ssh.invalidPort')}
+                    sx={{ width: { xs: '100%', sm: 140 } }}
+                  />
+                </Stack>
                 <TextField size="small" type="password" label={t('ssh.password')} value={password} onChange={(e) => setPassword(e.target.value)} disabled={connecting} />
                 <Stack direction="row" spacing={1}>
-                  <Button fullWidth variant="contained" color="primary" onClick={handleConnect} disabled={connecting || !password || !username} startIcon={<Plug2 size={16} />}>{connecting ? t('ssh.connecting') : t('ssh.connect')}</Button>
+                  <Button fullWidth variant="contained" color="primary" onClick={handleConnect} disabled={connectDisabled} startIcon={<Plug2 size={16} />}>{connecting ? t('ssh.connecting') : t('ssh.connect')}</Button>
                   {connected && (
                     <Button fullWidth variant="outlined" color="warning" onClick={handleDisconnect} startIcon={<PlugZap size={16} />}>{t('ssh.disconnect')}</Button>
                   )}

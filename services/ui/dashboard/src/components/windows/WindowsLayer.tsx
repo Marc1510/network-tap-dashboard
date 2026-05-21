@@ -59,7 +59,12 @@ export default function WindowsLayer() {
           >
             {w.type === 'ssh-terminal' && (
               <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-                <SshTerminal variant="window" windowId={w.id} setCloseGuard={makeSetCloseGuard(w.id)} />
+                <SshTerminal
+                  variant="window"
+                  windowId={w.id}
+                  setCloseGuard={makeSetCloseGuard(w.id)}
+                  initialConnection={w.connection}
+                />
               </Box>
             )}
           </FloatingWindow>

@@ -156,6 +156,10 @@
     "connect": "Connect",
     "connecting": "Connecting...",
     "disconnect": "Disconnect",
+    "host": "Host / IP",
+    "port": "Port",
+    "invalidPort": "Port 1-65535",
+    "invalidHostOrPort": "Please provide a valid host and port.",
     "createUserTitle": "Create new user",
     "createUserMessage": "Name of the user on the PI",
     "createUserConfirm": "Create",
@@ -166,6 +170,58 @@
     "closeTitle": "End connection?",
     "closeMessage": "The SSH connection is active. End it?",
     "closeConfirm": "End"
+  },
+  "localTsnNetwork": {
+    "subtitle": "Manage local TSN devices, test connectivity with ping, and open SSH directly.",
+    "createTitle": "Create new device",
+    "editTitle": "Edit device",
+    "listTitle": "Devices ({{count}})",
+    "empty": "No devices created yet.",
+    "deleteTitle": "Delete device",
+    "deleteMessage": "Delete device \"{{name}}\"?",
+    "sshPortHint": "1 to 65535",
+    "fields": {
+      "name": "Name",
+      "ipAddress": "IP address / host",
+      "icon": "Icon",
+      "sshUsername": "SSH user (optional)",
+      "sshPort": "SSH port",
+      "description": "Description (optional)"
+    },
+    "actions": {
+      "create": "Save device",
+      "update": "Save changes",
+      "clear": "Clear fields",
+      "cancelEdit": "Cancel editing",
+      "ping": "Test connection",
+      "ssh": "Connect via SSH"
+    },
+    "deviceDetails": {
+      "sshUser": "SSH user",
+      "sshPort": "SSH port",
+      "notSet": "not set"
+    },
+    "ping": {
+      "running": "Ping running...",
+      "success": "Connection successful ({{latency}} ms): {{message}}",
+      "error": "Connection failed: {{message}}"
+    },
+    "errors": {
+      "loadFailed": "Devices could not be loaded.",
+      "saveFailed": "Device could not be saved.",
+      "deleteFailed": "Device could not be deleted.",
+      "pingFailed": "Ping could not be executed."
+    },
+    "icons": {
+      "server": "Server",
+      "monitor": "Monitor",
+      "cpu": "Controller",
+      "camera": "Camera",
+      "drive": "Storage",
+      "radio": "Radio module",
+      "shield": "Gateway",
+      "activity": "Sensor"
+    }
   },
   "schedule": {
     "prevMonth": "Previous month",

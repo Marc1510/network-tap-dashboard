@@ -156,6 +156,10 @@
     "connect": "Verbinden",
     "connecting": "Verbinden...",
     "disconnect": "Trennen",
+    "host": "Host / IP",
+    "port": "Port",
+    "invalidPort": "Port 1-65535",
+    "invalidHostOrPort": "Bitte gueltigen Host und Port angeben.",
     "createUserTitle": "Neuen Nutzer anlegen",
     "createUserMessage": "Name des Benutzers auf dem PI",
     "createUserConfirm": "Anlegen",
@@ -166,6 +170,58 @@
     "closeTitle": "Verbindung beenden?",
     "closeMessage": "Die SSH-Verbindung ist aktiv. Wirklich beenden?",
     "closeConfirm": "Beenden"
+  },
+  "localTsnNetwork": {
+    "subtitle": "Lokale TSN-Geraete verwalten, Verbindung per Ping pruefen und direkt per SSH verbinden.",
+    "createTitle": "Neues Geraet anlegen",
+    "editTitle": "Geraet bearbeiten",
+    "listTitle": "Geraete ({{count}})",
+    "empty": "Noch keine Geraete angelegt.",
+    "deleteTitle": "Geraet loeschen",
+    "deleteMessage": "Geraet \"{{name}}\" wirklich loeschen?",
+    "sshPortHint": "1 bis 65535",
+    "fields": {
+      "name": "Name",
+      "ipAddress": "IP-Adresse / Host",
+      "icon": "Icon",
+      "sshUsername": "SSH-Nutzer (optional)",
+      "sshPort": "SSH-Port",
+      "description": "Beschreibung (optional)"
+    },
+    "actions": {
+      "create": "Geraet speichern",
+      "update": "Aenderungen speichern",
+      "clear": "Felder leeren",
+      "cancelEdit": "Bearbeiten abbrechen",
+      "ping": "Verbindung testen",
+      "ssh": "Per SSH verbinden"
+    },
+    "deviceDetails": {
+      "sshUser": "SSH-Nutzer",
+      "sshPort": "SSH-Port",
+      "notSet": "nicht gesetzt"
+    },
+    "ping": {
+      "running": "Ping laeuft...",
+      "success": "Verbindung erfolgreich ({{latency}} ms): {{message}}",
+      "error": "Verbindung fehlgeschlagen: {{message}}"
+    },
+    "errors": {
+      "loadFailed": "Geraete konnten nicht geladen werden.",
+      "saveFailed": "Geraet konnte nicht gespeichert werden.",
+      "deleteFailed": "Geraet konnte nicht geloescht werden.",
+      "pingFailed": "Ping konnte nicht ausgefuehrt werden."
+    },
+    "icons": {
+      "server": "Server",
+      "monitor": "Monitor",
+      "cpu": "Controller",
+      "camera": "Kamera",
+      "drive": "Storage",
+      "radio": "Funkmodul",
+      "shield": "Gateway",
+      "activity": "Sensor"
+    }
   },
   "schedule": {
     "prevMonth": "Vorheriger Monat",

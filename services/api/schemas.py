@@ -112,3 +112,21 @@ class DeleteCaptureSessionsPayload(BaseModel):
 	capture_ids: list[str]
 
 
+class CreateLocalTsnDevicePayload(BaseModel):
+	name: str
+	ipAddress: str
+	icon: str = "server"
+	description: Optional[str] = None
+	sshPort: int = Field(default=22, ge=1, le=65535)
+	sshUsername: Optional[str] = None
+
+
+class UpdateLocalTsnDevicePayload(BaseModel):
+	name: Optional[str] = None
+	ipAddress: Optional[str] = None
+	icon: Optional[str] = None
+	description: Optional[str] = None
+	sshPort: Optional[int] = Field(default=None, ge=1, le=65535)
+	sshUsername: Optional[str] = None
+
+

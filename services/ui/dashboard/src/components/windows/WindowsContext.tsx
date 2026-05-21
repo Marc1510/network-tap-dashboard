@@ -3,10 +3,21 @@ import { useTranslation } from 'react-i18next'
 
 export type WindowType = 'ssh-terminal'
 
+export type SshWindowConnection = {
+  host?: string
+  port?: number
+  username?: string
+}
+
+export type OpenSshWindowOptions = SshWindowConnection & {
+  title?: string
+}
+
 export type WindowState = {
   id: string
   type: WindowType
   title?: string
+  connection?: SshWindowConnection
   x: number
   y: number
   width: number
@@ -19,7 +30,7 @@ export type WindowState = {
 export type WindowsContextType = {
   windows: WindowState[]
   openWindow: (type: WindowType, initial?: Partial<WindowState>) => string
-  openSshWindow: () => string
+  openSshWindow: (options?: OpenSshWindowOptions) => string
   closeWindow: (id: string) => void
   minimizeWindow: (id: string) => void
   restoreWindow: (id: string) => void
@@ -37,6 +48,24 @@ function makeId() {
 
 function clamp(min: number, v: number, max: number) {
   return Math.max(min, Math.min(v, max))
+}
+
+function sanitizeConnection(raw: unknown): SshWindowConnection | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const data = raw as Record<string, unknown>
+
+  const host = typeof data.host === 'string' ? data.host.trim() : ''
+  const portCandidate = typeof data.port === 'number' ? data.port : (typeof data.port === 'string' ? Number(data.port) : undefined)
+  const port = Number.isInteger(portCandidate) && Number(portCandidate) >= 1 && Number(portCandidate) <= 65535
+    ? Number(portCandidate)
+    : undefined
+  const username = typeof data.username === 'string' ? data.username.trim() : ''
+
+  const result: SshWindowConnection = {}
+  if (host) result.host = host
+  if (port) result.port = port
+  if (username) result.username = username
+  return Object.keys(result).length > 0 ? result : undefined
 }
 
 export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -57,6 +86,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
               id: String(w.id),
               type: w.type as WindowType,
               title: typeof w.title === 'string' ? w.title : undefined,
+              connection: sanitizeConnection(w.connection),
               x: Number.isFinite(w.x) ? w.x : 40,
               y: Number.isFinite(w.y) ? w.y : 40,
               width: Number.isFinite(w.width) ? w.width : 720,
@@ -94,6 +124,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id,
       type,
       title: initial?.title,
+      connection: sanitizeConnection(initial?.connection),
       x: initial?.x ?? Math.round((vw - defaultW) / 2 + (Math.random() * 60 - 30)),
       y: initial?.y ?? Math.round((vh - defaultH) / 2 + (Math.random() * 60 - 30)),
       width: initial?.width ?? defaultW,
@@ -106,8 +137,10 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return id
   }, [])
 
-  const openSshWindow = useCallback(() => {
-    return openWindow('ssh-terminal', { title: t('ssh.title') })
+  const openSshWindow = useCallback((options?: OpenSshWindowOptions) => {
+    const connection = sanitizeConnection(options)
+    const title = options?.title || (connection?.host ? `SSH: ${connection.host}` : t('ssh.title'))
+    return openWindow('ssh-terminal', { title, connection })
   }, [openWindow, t])
 
   const closeWindow = useCallback((id: string) => {

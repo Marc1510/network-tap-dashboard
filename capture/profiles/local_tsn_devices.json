@@ -1,0 +1,15 @@
+{
+  "devices": [
+    {
+      "id": "a28c825b0e55492cb5f9e55df529346a",
+      "name": "Board1",
+      "ipAddress": "10.10.0.77",
+      "icon": "server",
+      "description": null,
+      "sshPort": 22,
+      "sshUsername": "marc",
+      "createdUtc": "20260521T192815Z",
+      "updatedUtc": "20260521T192815Z"
+    }
+  ]
+}
