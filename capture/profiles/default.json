@@ -6,7 +6,9 @@
   "createdUtc": "20241204T120000Z",
   "updatedUtc": "20241204T120000Z",
   "settings": {
-    "interfaces": ["eth0"],
+    "interfaces": [
+      "eth0"
+    ],
     "promiscuousMode": true,
     "stopCondition": "manual",
     "stopDurationValue": 60,
@@ -34,6 +36,7 @@
     "capturePtp": false,
     "captureVlanTagged": false,
     "tsnPriorityFilter": null,
+    "printLinkLevelHeader": false,
     "headerOnly": false,
     "headerSnaplen": 96,
     "generateTestMetadataFile": true,
