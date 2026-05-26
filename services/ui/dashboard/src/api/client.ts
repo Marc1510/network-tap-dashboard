@@ -43,7 +43,24 @@ export class ApiClient {
     })
 
     if (!res.ok) {
-      throw new ApiError(res.status, `HTTP ${res.status}`)
+      let message = `HTTP ${res.status}`
+      try {
+        const contentType = res.headers.get('content-type') || ''
+        if (contentType.includes('application/json')) {
+          const payload = await res.json() as { detail?: unknown; message?: unknown }
+          if (typeof payload.detail === 'string' && payload.detail.trim()) {
+            message = payload.detail
+          } else if (typeof payload.message === 'string' && payload.message.trim()) {
+            message = payload.message
+          }
+        } else {
+          const text = await res.text()
+          if (text.trim()) message = text.trim()
+        }
+      } catch {
+        // ignore parsing errors and keep generic HTTP message
+      }
+      throw new ApiError(res.status, message)
     }
 
     return res.json()

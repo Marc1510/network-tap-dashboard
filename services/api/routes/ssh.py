@@ -1,204 +1,222 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect
 import asyncio
 import contextlib
 import json
+from typing import Any
 
-from services.api.ssh_service import (
-	load_users,
-	save_users,
-	sanitize_username,
-	ensure_profiles_and_users_file,
-)
+from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect
+
+from services.api.ssh_service import load_users, sanitize_username, save_users
 
 
 router = APIRouter(prefix="/ssh")
 
 
-
-
 @router.get("/users")
 def api_list_ssh_users():
-	try:
-		return {"users": load_users()}
-	except Exception:
-		return {"users": []}
+    try:
+        return {"users": load_users()}
+    except Exception:
+        return {"users": []}
 
 
 @router.post("/users")
 def api_create_ssh_user(payload: dict = Body()):  # type: ignore[type-arg]
-	raw = str(payload.get("username") or "")
-	username = sanitize_username(raw)
-	if not username:
-		raise HTTPException(status_code=400, detail="'username' ist erforderlich")
-	users = load_users()
-	if username in users:
-		raise HTTPException(status_code=409, detail="Nutzer existiert bereits")
-	users.append(username)
-	users = sorted(set(users), key=lambda x: x.lower())
-	save_users(users)
-	return {"username": username}
+    raw = str(payload.get("username") or "")
+    username = sanitize_username(raw)
+    if not username:
+        raise HTTPException(status_code=400, detail="'username' ist erforderlich")
+    users = load_users()
+    if username in users:
+        raise HTTPException(status_code=409, detail="Nutzer existiert bereits")
+    users.append(username)
+    users = sorted(set(users), key=lambda value: value.lower())
+    save_users(users)
+    return {"username": username}
 
 
 @router.delete("/users/{username}")
 def api_delete_ssh_user(username: str):
-	name = sanitize_username(username)
-	users = load_users()
-	if name not in users:
-		raise HTTPException(status_code=404, detail="Nutzer nicht gefunden")
-	users = [u for u in users if u != name]
-	save_users(users)
-	return {"deleted": True}
-
-
-# --- SSH Terminal WebSocket Bridge ---
-try:
-	import asyncssh  # type: ignore
-except Exception:  # noqa: BLE001
-	asyncssh = None
+    name = sanitize_username(username)
+    users = load_users()
+    if name not in users:
+        raise HTTPException(status_code=404, detail="Nutzer nicht gefunden")
+    users = [user for user in users if user != name]
+    save_users(users)
+    return {"deleted": True}
 
 
 @router.websocket("/ws")
 async def ssh_websocket(ws: WebSocket):  # pragma: no cover - interactive
-	"""
-	Einfacher WebSocket-zu-SSH Bridge:
+    """
+    WebSocket bridge around the local OpenSSH client.
 
-	Client-Protokoll (JSON pro Nachricht):
-	  - {"type":"connect","host":"localhost","port":22,"username":"pi","password":"...","cols":80,"rows":24}
-	  - {"type":"input","data":"<text>"}
-	  - {"type":"resize","cols":80,"rows":24}
-	  - {"type":"disconnect"}
+    This keeps key-based auth, jump hosts, password prompts, and remote shell
+    behavior aligned with the machine's own `ssh` binary instead of re-implementing
+    terminal semantics in Python.
+    """
 
-	Server-Events:
-	  - {"type":"status","status":"connecting|connected|error|closed","message"?:string}
-	  - {"type":"output","data":"..."}
-	"""
-	await ws.accept()
-	if asyncssh is None:
-		await ws.send_text(json.dumps({"type": "status", "status": "error", "message": "asyncssh nicht installiert"}))
-		await ws.close()
-		return
+    await ws.accept()
 
-	ssh_conn = None
-	ssh_proc = None
-	reader_task: asyncio.Task | None = None
+    process: asyncio.subprocess.Process | None = None
+    stdout_task: asyncio.Task | None = None
+    wait_task: asyncio.Task | None = None
+    closed_sent = False
 
-	async def close_all():
-		nonlocal reader_task, ssh_proc, ssh_conn
-		try:
-			if reader_task and not reader_task.done():
-				reader_task.cancel()
-				with contextlib.suppress(Exception):
-					await reader_task
-		except Exception:
-			pass
-		try:
-			if ssh_proc:
-				with contextlib.suppress(Exception):
-					ssh_proc.stdin.write_eof()
-				with contextlib.suppress(Exception):
-					ssh_proc.terminate()
-		except Exception:
-			pass
-		try:
-			if ssh_conn:
-				with contextlib.suppress(Exception):
-					ssh_conn.close()
-				with contextlib.suppress(Exception):
-					await ssh_conn.wait_closed()
-		except Exception:
-			pass
+    async def send_status(status: str, message: str | None = None) -> None:
+        nonlocal closed_sent
+        if status == "closed":
+            if closed_sent:
+                return
+            closed_sent = True
+        payload: dict[str, Any] = {"type": "status", "status": status}
+        if message:
+            payload["message"] = message
+        with contextlib.suppress(Exception):
+            await ws.send_text(json.dumps(payload))
 
-	try:
-		await ws.send_text(json.dumps({"type": "status", "status": "connecting"}))
-		initial = await ws.receive_text()
-		try:
-			msg = json.loads(initial)
-		except Exception:
-			await ws.send_text(json.dumps({"type": "status", "status": "error", "message": "Ungültige Startnachricht"}))
-			await ws.close()
-			return
-		if not isinstance(msg, dict) or msg.get("type") != "connect":
-			await ws.send_text(json.dumps({"type": "status", "status": "error", "message": "Erste Nachricht muss 'connect' sein"}))
-			await ws.close()
-			return
+    async def close_all() -> None:
+        nonlocal stdout_task, wait_task, process
 
-		host = str(msg.get("host") or "localhost")
-		port = int(msg.get("port") or 22)
-		username = str(msg.get("username") or "pi")
-		password = str(msg.get("password") or "")
-		cols = int(msg.get("cols") or 80)
-		rows = int(msg.get("rows") or 24)
+        for task in (stdout_task, wait_task):
+            if task and not task.done():
+                task.cancel()
+                with contextlib.suppress(Exception):
+                    await task
 
-		try:
-			ssh_conn = await asyncssh.connect(
-				host=host,
-				port=port,
-				username=username,
-				password=password,
-				known_hosts=None,
-				client_keys=None,
-			)
-			ssh_proc = await ssh_conn.create_process(term_type="xterm-256color", term_size=(cols, rows))
-		except Exception as exc:  # noqa: BLE001
-			await ws.send_text(json.dumps({"type": "status", "status": "error", "message": f"SSH-Verbindung fehlgeschlagen: {exc}"}))
-			await ws.close()
-			return
+        if process:
+            if process.stdin and not process.stdin.is_closing():
+                with contextlib.suppress(Exception):
+                    process.stdin.close()
+            if process.returncode is None:
+                with contextlib.suppress(Exception):
+                    process.terminate()
+                with contextlib.suppress(Exception):
+                    await asyncio.wait_for(process.wait(), timeout=2)
 
-		await ws.send_text(json.dumps({"type": "status", "status": "connected"}))
+    try:
+        await send_status("connecting")
+        initial = await ws.receive_text()
+        try:
+            msg = json.loads(initial)
+        except Exception:
+            await send_status("error", "Ungueltige Startnachricht")
+            await ws.close()
+            return
 
-		async def pump_stdout():
-			assert ssh_proc is not None
-			try:
-				while True:
-					data = await ssh_proc.stdout.read(4096)
-					if not data:
-						break
-					await ws.send_text(json.dumps({"type": "output", "data": data}))
-			except asyncio.CancelledError:
-				pass
-			except Exception:
-				pass
+        if not isinstance(msg, dict) or msg.get("type") != "connect":
+            await send_status("error", "Erste Nachricht muss 'connect' sein")
+            await ws.close()
+            return
 
-		reader_task = asyncio.create_task(pump_stdout())
+        host = str(msg.get("host") or "localhost").strip()
+        port = int(msg.get("port") or 22)
+        username = str(msg.get("username") or "").strip()
+        jump_host = str(msg.get("jumpHost") or "").strip()
+        jump_port = int(msg.get("jumpPort") or 22)
+        jump_username = str(msg.get("jumpUsername") or "").strip()
 
-		while True:
-			try:
-				msg_text = await ws.receive_text()
-			except WebSocketDisconnect:
-				break
-			except Exception:
-				break
-			try:
-				m = json.loads(msg_text)
-			except Exception:
-				continue
+        target = f"{username}@{host}" if username else host
+        if not host:
+            await send_status("error", "Host fehlt")
+            await ws.close()
+            return
 
-			if not isinstance(m, dict):
-				continue
-			t = m.get("type")
-			if t == "input":
-				if ssh_proc is not None and "data" in m:
-					try:
-						ssh_proc.stdin.write(m.get("data") or "")
-					except Exception:
-						pass
-			elif t == "resize":
-				if ssh_proc is not None:
-					c = int(m.get("cols") or cols)
-					r = int(m.get("rows") or rows)
-					with contextlib.suppress(Exception):
-						ssh_proc.set_terminal_size(c, r)
-			elif t == "disconnect":
-				break
+        args = [
+            "ssh",
+            "-tt",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "ServerAliveInterval=15",
+            "-p",
+            str(port),
+        ]
 
-	except asyncio.CancelledError:
-		pass
-	finally:
-		await close_all()
-		with contextlib.suppress(Exception):
-			await ws.send_text(json.dumps({"type": "status", "status": "closed"}))
-		with contextlib.suppress(Exception):
-			await ws.close()
+        if jump_host:
+            jump_target = f"{jump_username}@{jump_host}" if jump_username else jump_host
+            if jump_port and jump_port != 22:
+                jump_target = f"{jump_target}:{jump_port}"
+            args.extend(["-J", jump_target])
 
+        args.append(target)
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *args,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+        except FileNotFoundError:
+            await send_status("error", "SSH-Client nicht gefunden")
+            await ws.close()
+            return
+        except Exception as exc:  # noqa: BLE001
+            await send_status("error", f"SSH-Verbindung fehlgeschlagen: {exc}")
+            await ws.close()
+            return
+
+        await send_status("connected")
+
+        async def pump_stdout() -> None:
+            assert process is not None and process.stdout is not None
+            try:
+                while True:
+                    data = await process.stdout.read(4096)
+                    if not data:
+                        break
+                    await ws.send_text(json.dumps({"type": "output", "data": data.decode('utf-8', errors='replace')}))
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+
+        async def watch_process() -> None:
+            assert process is not None
+            try:
+                await process.wait()
+            except asyncio.CancelledError:
+                return
+            await send_status("closed")
+            with contextlib.suppress(Exception):
+                await ws.close()
+
+        stdout_task = asyncio.create_task(pump_stdout())
+        wait_task = asyncio.create_task(watch_process())
+
+        while True:
+            try:
+                msg_text = await ws.receive_text()
+            except WebSocketDisconnect:
+                break
+            except Exception:
+                break
+
+            try:
+                message = json.loads(msg_text)
+            except Exception:
+                continue
+
+            if not isinstance(message, dict):
+                continue
+
+            msg_type = message.get("type")
+            if msg_type == "input":
+                if process is not None and process.stdin is not None and "data" in message:
+                    with contextlib.suppress(Exception):
+                        process.stdin.write(str(message.get("data") or "").encode("utf-8", errors="replace"))
+                        await process.stdin.drain()
+            elif msg_type == "resize":
+                continue
+            elif msg_type == "disconnect":
+                break
+
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await close_all()
+        await send_status("closed")
+        with contextlib.suppress(Exception):
+            await ws.close()

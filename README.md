@@ -298,7 +298,8 @@ npm run dev
 npm run build
 ```
 
-The development server runs on port 5173 and proxies API requests to `http://localhost:8000`.
+The development server runs on port 5173 and proxies API requests to `http://10.10.0.77:8000` by default.
+You can override this target via `VITE_DEV_API_TARGET`.
 
 ### API Documentation
 

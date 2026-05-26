@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 
 
 class TestProfileSettings(BaseModel):
@@ -112,21 +112,57 @@ class DeleteCaptureSessionsPayload(BaseModel):
 	capture_ids: list[str]
 
 
+class CreateLocalTsnNetworkPayload(BaseModel):
+	name: str
+	description: Optional[str] = None
+
+
+class UpdateLocalTsnNetworkPayload(BaseModel):
+	name: Optional[str] = None
+	description: Optional[str] = None
+
+
 class CreateLocalTsnDevicePayload(BaseModel):
 	name: str
+	role: Literal["controller", "switch", "bridge", "endpoint", "observer", "generic"] = "generic"
 	ipAddress: str
+	sshHost: Optional[str] = None
 	icon: str = "server"
 	description: Optional[str] = None
 	sshPort: int = Field(default=22, ge=1, le=65535)
 	sshUsername: Optional[str] = None
+	sshPassword: Optional[str] = None
+	jumpHostDeviceId: Optional[str] = None
+	primaryInterface: str = "eth0"
+	secondaryInterface: Optional[str] = None
+	bridgeInterface: Optional[str] = None
+	topologyOrder: int = Field(default=0, ge=0, le=999)
+	nodeAddressSuffix: Optional[int] = Field(default=None, ge=1, le=254)
 
 
 class UpdateLocalTsnDevicePayload(BaseModel):
 	name: Optional[str] = None
+	role: Optional[Literal["controller", "switch", "bridge", "endpoint", "observer", "generic"]] = None
 	ipAddress: Optional[str] = None
+	sshHost: Optional[str] = None
 	icon: Optional[str] = None
 	description: Optional[str] = None
 	sshPort: Optional[int] = Field(default=None, ge=1, le=65535)
 	sshUsername: Optional[str] = None
+	sshPassword: Optional[str] = None
+	jumpHostDeviceId: Optional[str] = None
+	primaryInterface: Optional[str] = None
+	secondaryInterface: Optional[str] = None
+	bridgeInterface: Optional[str] = None
+	topologyOrder: Optional[int] = Field(default=None, ge=0, le=999)
+	nodeAddressSuffix: Optional[int] = Field(default=None, ge=1, le=254)
+
+
+class LocalTsnDevicePingBetweenPayload(BaseModel):
+	sourceDeviceId: str
+	targetDeviceId: str
+	trafficClass: Literal["management", "vlan10", "vlan20"] = "management"
+	count: int = Field(default=1, ge=1, le=20)
+	qosHex: Optional[str] = None
 
 

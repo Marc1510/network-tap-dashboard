@@ -1,4 +1,4 @@
-import { Box, Paper, Typography, Stack, TextField, Button, MenuItem, FormControl, Select, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, ListItemText, ListItemIcon } from '@mui/material'
+import { Alert, Box, Paper, Typography, Stack, TextField, Button, MenuItem, FormControl, Select, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, ListItemText, ListItemIcon } from '@mui/material'
 import ConfirmDialog from './ConfirmDialog'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Terminal as TerminalIcon, PlugZap, Plug2, X } from 'lucide-react'
@@ -41,6 +41,9 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard,
   const [host, setHost] = useState(initialConnection?.host || 'localhost')
   const [port, setPort] = useState(String(initialConnection?.port || 22))
   const [username, setUsername] = useState(initialConnection?.username || '')
+  const [jumpHost, setJumpHost] = useState(initialConnection?.jumpHost || '')
+  const [jumpPort, setJumpPort] = useState(String(initialConnection?.jumpPort || 22))
+  const [jumpUsername, setJumpUsername] = useState(initialConnection?.jumpUsername || '')
   const [password, setPassword] = useState('')
   const [connecting, setConnecting] = useState(false)
   const [connected, setConnected] = useState(false)
@@ -72,6 +75,9 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard,
     if (initialConnection?.host) setHost(initialConnection.host)
     if (initialConnection?.port) setPort(String(initialConnection.port))
     if (initialConnection?.username) setUsername(initialConnection.username)
+    if (initialConnection?.jumpHost) setJumpHost(initialConnection.jumpHost)
+    if (initialConnection?.jumpPort) setJumpPort(String(initialConnection.jumpPort))
+    if (initialConnection?.jumpUsername) setJumpUsername(initialConnection.jumpUsername)
   }, [initialConnection, hostPortTouched])
 
   // Register close guard with parent (WindowsLayer)
@@ -223,7 +229,17 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard,
     ws.onopen = () => {
       // Initial connect message
       const dims = termObj.current ? { cols: termObj.current.cols, rows: termObj.current.rows } : { cols: 80, rows: 24 }
-      ws.send(JSON.stringify({ type: 'connect', host: targetHost, port: targetPort, username, password, ...dims }))
+      ws.send(JSON.stringify({
+        type: 'connect',
+        host: targetHost,
+        port: targetPort,
+        username,
+        password,
+        jumpHost: jumpHost || undefined,
+        jumpPort: jumpHost ? Number(jumpPort || 22) : undefined,
+        jumpUsername: jumpHost ? jumpUsername || undefined : undefined,
+        ...dims,
+      }))
     }
     ws.onmessage = (ev) => {
       try {
@@ -292,7 +308,7 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard,
   const parsedPort = Number(port)
   const portValid = Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535
   const hostValid = String(host || '').trim().length > 0
-  const connectDisabled = connecting || !password || !username || !hostValid || !portValid
+  const connectDisabled = connecting || !username || !hostValid || !portValid
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3, height: variant === 'window' ? '100%' : 'auto' }}>
@@ -379,8 +395,17 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard,
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={connecting || connected}
+                helperText={t('ssh.passwordOptional', { defaultValue: 'Optional. Bei Key-Logins oder Passwort-Prompts kannst du das Feld leer lassen.' })}
                 fullWidth
               />
+              {jumpHost && (
+                <Alert severity="info">
+                  {t('ssh.jumpHostHint', {
+                    defaultValue: 'Diese Sitzung wird ueber {{jump}} geleitet.',
+                    jump: jumpUsername ? `${jumpUsername}@${jumpHost}` : jumpHost,
+                  })}
+                </Alert>
+              )}
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {!connected ? (
                   <Button variant="contained" color="primary" onClick={handleConnect} disabled={connectDisabled} startIcon={<Plug2 size={16} />} fullWidth>
@@ -466,7 +491,23 @@ export default function SshTerminal({ variant = 'page', windowId, setCloseGuard,
                     sx={{ width: { xs: '100%', sm: 140 } }}
                   />
                 </Stack>
-                <TextField size="small" type="password" label={t('ssh.password')} value={password} onChange={(e) => setPassword(e.target.value)} disabled={connecting} />
+                <TextField
+                  size="small"
+                  type="password"
+                  label={t('ssh.password')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  helperText={t('ssh.passwordOptional', { defaultValue: 'Optional. Bei Key-Logins oder Passwort-Prompts kannst du das Feld leer lassen.' })}
+                  disabled={connecting}
+                />
+                {jumpHost && (
+                  <Alert severity="info">
+                    {t('ssh.jumpHostHint', {
+                      defaultValue: 'Diese Sitzung wird ueber {{jump}} geleitet.',
+                      jump: jumpUsername ? `${jumpUsername}@${jumpHost}` : jumpHost,
+                    })}
+                  </Alert>
+                )}
                 <Stack direction="row" spacing={1}>
                   <Button fullWidth variant="contained" color="primary" onClick={handleConnect} disabled={connectDisabled} startIcon={<Plug2 size={16} />}>{connecting ? t('ssh.connecting') : t('ssh.connect')}</Button>
                   {connected && (

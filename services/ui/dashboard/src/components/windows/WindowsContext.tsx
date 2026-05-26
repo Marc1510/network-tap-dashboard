@@ -7,6 +7,9 @@ export type SshWindowConnection = {
   host?: string
   port?: number
   username?: string
+  jumpHost?: string
+  jumpPort?: number
+  jumpUsername?: string
 }
 
 export type OpenSshWindowOptions = SshWindowConnection & {
@@ -60,11 +63,21 @@ function sanitizeConnection(raw: unknown): SshWindowConnection | undefined {
     ? Number(portCandidate)
     : undefined
   const username = typeof data.username === 'string' ? data.username.trim() : ''
+  const jumpHost = typeof data.jumpHost === 'string' ? data.jumpHost.trim() : ''
+  const jumpPortCandidate =
+    typeof data.jumpPort === 'number' ? data.jumpPort : (typeof data.jumpPort === 'string' ? Number(data.jumpPort) : undefined)
+  const jumpPort = Number.isInteger(jumpPortCandidate) && Number(jumpPortCandidate) >= 1 && Number(jumpPortCandidate) <= 65535
+    ? Number(jumpPortCandidate)
+    : undefined
+  const jumpUsername = typeof data.jumpUsername === 'string' ? data.jumpUsername.trim() : ''
 
   const result: SshWindowConnection = {}
   if (host) result.host = host
   if (port) result.port = port
   if (username) result.username = username
+  if (jumpHost) result.jumpHost = jumpHost
+  if (jumpPort) result.jumpPort = jumpPort
+  if (jumpUsername) result.jumpUsername = jumpUsername
   return Object.keys(result).length > 0 ? result : undefined
 }
 
