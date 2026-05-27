@@ -65,3 +65,5 @@ schedules.json
 # Misc
 *.tmp
 *.bak
+
+/evidence
