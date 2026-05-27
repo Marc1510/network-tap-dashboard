@@ -413,9 +413,9 @@ def _sanitize_output_list(raw: Any) -> list[dict[str, Any]]:
                 "deviceName": str(item.get("deviceName") or "").strip() or None,
                 "success": bool(item.get("success")),
                 "status": str(item.get("status") or "").strip() or None,
-                "message": _clip_text(str(item.get("message") or ""), limit=280),
-                "command": _clip_text(str(item.get("command") or ""), limit=280),
-                "stdout": _clip_text(str(item.get("stdout") or ""), limit=900),
+                "message": _clip_text(str(item.get("message") or ""), limit=360),
+                "command": _clip_text(str(item.get("command") or ""), limit=1400),
+                "stdout": _clip_text(str(item.get("stdout") or ""), limit=4000),
                 "target": str(item.get("target") or "").strip() or None,
                 "latencyMs": _safe_loaded_duration(item.get("latencyMs")),
             }
@@ -858,7 +858,7 @@ def _update_feature_state(
     feature_states = target.setdefault("featureStates", _default_feature_states())
     feature_states[feature_id] = {
         "status": status if status in FEATURE_STATUSES else "unknown",
-        "message": _clip_text(message, limit=280),
+        "message": _clip_text(message, limit=360),
         "updatedUtc": utcnow_iso(),
         "lastAction": action,
         "lastDurationMs": duration_ms,
@@ -1164,6 +1164,75 @@ def _device_vlan_parent(device: dict[str, Any]) -> str:
     return device.get("bridgeInterface") or device.get("primaryInterface") or DEFAULT_PRIMARY_INTERFACE
 
 
+def _feature_readiness_issues(network: dict[str, Any], feature_id: str) -> list[str]:
+    feature = next((entry for entry in FEATURE_CATALOG if entry["id"] == feature_id), None)
+    if feature is None:
+        return [f"Unbekanntes Feature: {feature_id}"]
+
+    issues: list[str] = []
+    for role in feature["requiredRoles"]:
+        if not any(device["role"] == role for device in network["devices"]):
+            issues.append(f"Rolle '{role}' fehlt im Netz.")
+
+    involved_devices = [device for device in network["devices"] if device["role"] in feature["requiredRoles"]]
+    for device in involved_devices:
+        if not device.get("sshUsername"):
+            issues.append(f"{device['name']}: SSH-Nutzer fehlt.")
+        if device.get("jumpHostDeviceId") and device.get("sshPassword"):
+            issues.append(f"{device['name']}: Passwort + Jump Host werden fuer TSN-Aktionen nicht zusammen unterstuetzt.")
+
+    if feature_id == "gptp":
+        for device in [device for device in involved_devices if device["role"] == "switch"]:
+            if not device.get("secondaryInterface"):
+                issues.append(f"{device['name']}: zweites gPTP-Interface fehlt (z. B. eth2).")
+
+    if feature_id in {"qbv", "timestamping"}:
+        for device in involved_devices:
+            suffix = device.get("nodeAddressSuffix") or _derive_node_address_suffix(device["ipAddress"])
+            if not suffix:
+                issues.append(f"{device['name']}: VLAN-Adresssuffix fehlt.")
+        for device in [device for device in involved_devices if device["role"] == "switch"]:
+            if not device.get("bridgeInterface"):
+                issues.append(f"{device['name']}: Bridge / VLAN Parent fehlt (z. B. br0).")
+
+    return issues
+
+
+def _require_remote_tools(*tools: str) -> list[str]:
+    commands: list[str] = []
+    for tool in tools:
+        commands.append(f"command -v {shlex.quote(tool)} >/dev/null 2>&1 || {{ echo 'Tool fehlt: {tool}'; exit 1; }}")
+    return commands
+
+
+def _require_remote_interfaces(*interfaces: str | None) -> list[str]:
+    commands: list[str] = []
+    seen: set[str] = set()
+    for interface in interfaces:
+        if not interface or interface in seen:
+            continue
+        seen.add(interface)
+        commands.append(f"ip link show {shlex.quote(interface)} >/dev/null 2>&1 || {{ echo 'Interface fehlt: {interface}'; exit 1; }}")
+    return commands
+
+
+def _require_remote_file(path: str) -> str:
+    return f"test -f {shlex.quote(path)} || {{ echo 'Datei fehlt: {path}'; exit 1; }}"
+
+
+def _assert_process_running(pattern: str, label: str, log_path: str) -> list[str]:
+    return [
+        f"pgrep -af {shlex.quote(pattern)} >/dev/null || {{ echo '{label} laeuft nicht'; tail -n 60 {shlex.quote(log_path)} || true; exit 1; }}",
+    ]
+
+
+def _tail_remote_log(label: str, log_path: str, *, lines: int) -> list[str]:
+    return [
+        f"echo '--- {label}: {log_path} ---'",
+        f"tail -n {max(1, int(lines))} {shlex.quote(log_path)} || true",
+    ]
+
+
 def _taprio_schedule(preemptive: bool) -> str:
     base = (
         "tc qdisc replace dev {iface} parent root handle 100 taprio "
@@ -1194,6 +1263,10 @@ def _ensure_vlan_commands(device: dict[str, Any]) -> list[str]:
 
 
 async def _run_feature_operation(network: dict[str, Any], feature_id: str, *, mode: str) -> list[dict[str, Any]]:
+    issues = _feature_readiness_issues(network, feature_id)
+    if issues:
+        raise FeatureSelectionError("Konfiguration unvollstaendig: " + " | ".join(issues))
+
     handlers = {
         "gptp": _apply_gptp if mode == "activate" else _verify_gptp,
         "qbv": _apply_qbv if mode == "activate" else _verify_qbv,
@@ -1217,34 +1290,58 @@ async def _apply_gptp(network: dict[str, Any]) -> list[dict[str, Any]]:
         interface_args = f"-i {primary}"
         if secondary:
             interface_args += f" -i {secondary}"
+        phc_log = "/tmp/tsn-phc2sys-master.log"
+        ptp_log = "/tmp/tsn-ptp4l-master.log"
         script = "\n".join(
             [
                 "set -e",
+                *_require_remote_tools("ip", "pgrep", "pkill", "ptp4l", "phc2sys", "tail"),
+                *_require_remote_interfaces(primary, secondary),
+                _require_remote_file("/etc/gPTP.cfg"),
                 "pkill -f 'ptp4l -f /etc/gPTP.cfg' >/dev/null 2>&1 || true",
                 f"pkill -f 'phc2sys -s CLOCK_REALTIME -c {primary}' >/dev/null 2>&1 || true",
-                f"nohup sh -lc {shlex.quote(f'phc2sys -s CLOCK_REALTIME -c {primary} -m -O 0')} >/tmp/tsn-phc2sys-master.log 2>&1 &",
-                f"nohup sh -lc {shlex.quote(f'ptp4l -f /etc/gPTP.cfg {interface_args} -m --boundary_clock_jbod=1')} >/tmp/tsn-ptp4l-master.log 2>&1 &",
+                f": > {shlex.quote(phc_log)}",
+                f"nohup sh -lc {shlex.quote(f'phc2sys -s CLOCK_REALTIME -c {primary} -m -O 0')} >{shlex.quote(phc_log)} 2>&1 &",
                 "sleep 1",
-                "pgrep -af 'ptp4l|phc2sys'",
+                f": > {shlex.quote(ptp_log)}",
+                f"nohup sh -lc {shlex.quote(f'ptp4l -f /etc/gPTP.cfg {interface_args} -m --boundary_clock_jbod=1')} >{shlex.quote(ptp_log)} 2>&1 &",
+                "sleep 3",
+                *_assert_process_running("phc2sys", "phc2sys (Master)", phc_log),
+                *_assert_process_running("ptp4l", "ptp4l (Master)", ptp_log),
+                "echo 'gPTP Master gestartet.'",
+                *_tail_remote_log("phc2sys master", phc_log, lines=18),
+                *_tail_remote_log("ptp4l master", ptp_log, lines=24),
             ]
         )
-        results.append(await _run_command_on_device(network, device, script, timeout=20))
+        results.append(await _run_command_on_device(network, device, script, timeout=25, require_root=True))
 
     for device in endpoints:
         primary = device["primaryInterface"]
+        ptp_log = "/tmp/tsn-ptp4l-slave.log"
+        phc_log = "/tmp/tsn-phc2sys-slave.log"
         script = "\n".join(
             [
                 "set -e",
+                *_require_remote_tools("ip", "pgrep", "pkill", "ptp4l", "phc2sys", "tail"),
+                *_require_remote_interfaces(primary),
+                _require_remote_file("/etc/gPTP.cfg"),
                 "systemctl stop systemd-timesyncd >/dev/null 2>&1 || true",
                 "pkill -f 'ptp4l -f /etc/gPTP.cfg' >/dev/null 2>&1 || true",
                 f"pkill -f 'phc2sys -s {primary} -c CLOCK_REALTIME' >/dev/null 2>&1 || true",
-                f"nohup sh -lc {shlex.quote(f'ptp4l -f /etc/gPTP.cfg -i {primary} -m')} >/tmp/tsn-ptp4l-slave.log 2>&1 &",
-                f"nohup sh -lc {shlex.quote(f'phc2sys -s {primary} -c CLOCK_REALTIME -O 0 -m -S 1.0')} >/tmp/tsn-phc2sys-slave.log 2>&1 &",
-                "sleep 1",
-                "pgrep -af 'ptp4l|phc2sys'",
+                f": > {shlex.quote(ptp_log)}",
+                f"nohup sh -lc {shlex.quote(f'ptp4l -f /etc/gPTP.cfg -i {primary} -m')} >{shlex.quote(ptp_log)} 2>&1 &",
+                "sleep 2",
+                f": > {shlex.quote(phc_log)}",
+                f"nohup sh -lc {shlex.quote(f'phc2sys -s {primary} -c CLOCK_REALTIME -O 0 -m -S 1.0')} >{shlex.quote(phc_log)} 2>&1 &",
+                "sleep 3",
+                *_assert_process_running("ptp4l", "ptp4l (Endpoint)", ptp_log),
+                *_assert_process_running("phc2sys", "phc2sys (Endpoint)", phc_log),
+                "echo 'gPTP Endpoint gestartet.'",
+                *_tail_remote_log("ptp4l endpoint", ptp_log, lines=24),
+                *_tail_remote_log("phc2sys endpoint", phc_log, lines=18),
             ]
         )
-        results.append(await _run_command_on_device(network, device, script, timeout=20))
+        results.append(await _run_command_on_device(network, device, script, timeout=25, require_root=True))
 
     return results
 
@@ -1252,12 +1349,34 @@ async def _apply_gptp(network: dict[str, Any]) -> list[dict[str, Any]]:
 async def _verify_gptp(network: dict[str, Any]) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for device in _switch_devices(network):
-        command = "set -e\npgrep -af 'ptp4l'\npgrep -af 'phc2sys'"
-        results.append(await _run_command_on_device(network, device, command, timeout=10))
+        command = "\n".join(
+            [
+                "set -e",
+                *_require_remote_tools("pgrep", "tail"),
+                "pgrep -af 'ptp4l' >/dev/null || { echo 'ptp4l (Master) laeuft nicht'; tail -n 40 /tmp/tsn-ptp4l-master.log || true; exit 1; }",
+                "pgrep -af 'phc2sys' >/dev/null || { echo 'phc2sys (Master) laeuft nicht'; tail -n 40 /tmp/tsn-phc2sys-master.log || true; exit 1; }",
+                "echo 'gPTP Master aktiv.'",
+                *_tail_remote_log("ptp4l master", "/tmp/tsn-ptp4l-master.log", lines=16),
+                *_tail_remote_log("phc2sys master", "/tmp/tsn-phc2sys-master.log", lines=12),
+            ]
+        )
+        results.append(await _run_command_on_device(network, device, command, timeout=15, require_root=True))
     for device in _endpoint_devices(network):
         primary = device["primaryInterface"]
-        command = f"set -e\npgrep -af 'ptp4l'\npgrep -af 'phc2sys'\nphc_ctl {shlex.quote(primary)} cmp"
-        results.append(await _run_command_on_device(network, device, command, timeout=15))
+        command = "\n".join(
+            [
+                "set -e",
+                *_require_remote_tools("pgrep", "tail", "phc_ctl"),
+                *_require_remote_interfaces(primary),
+                "pgrep -af 'ptp4l' >/dev/null || { echo 'ptp4l (Endpoint) laeuft nicht'; tail -n 40 /tmp/tsn-ptp4l-slave.log || true; exit 1; }",
+                "pgrep -af 'phc2sys' >/dev/null || { echo 'phc2sys (Endpoint) laeuft nicht'; tail -n 40 /tmp/tsn-phc2sys-slave.log || true; exit 1; }",
+                f"phc_ctl {shlex.quote(primary)} cmp",
+                "echo 'gPTP Endpoint aktiv.'",
+                *_tail_remote_log("ptp4l endpoint", "/tmp/tsn-ptp4l-slave.log", lines=16),
+                *_tail_remote_log("phc2sys endpoint", "/tmp/tsn-phc2sys-slave.log", lines=12),
+            ]
+        )
+        results.append(await _run_command_on_device(network, device, command, timeout=20, require_root=True))
     return results
 
 
@@ -1275,11 +1394,11 @@ async def _apply_qbv(network: dict[str, Any]) -> list[dict[str, Any]]:
                 f"tc -s qdisc show dev {shlex.quote(primary)}",
             ]
         )
-        results.append(await _run_command_on_device(network, device, "\n".join(script_lines), timeout=20))
+        results.append(await _run_command_on_device(network, device, "\n".join(script_lines), timeout=20, require_root=True))
 
     for device in _endpoint_devices(network):
         script = "\n".join(["set -e", *_ensure_vlan_commands(device), f"ip -br addr show dev {shlex.quote(device['primaryInterface'])}.10", f"ip -br addr show dev {shlex.quote(device['primaryInterface'])}.20"])
-        results.append(await _run_command_on_device(network, device, script, timeout=20))
+        results.append(await _run_command_on_device(network, device, script, timeout=20, require_root=True))
     return results
 
 
@@ -1297,7 +1416,7 @@ async def _verify_qbv(network: dict[str, Any]) -> list[dict[str, Any]]:
                 f"tc -s qdisc show dev {shlex.quote(primary)}",
             ]
         )
-        results.append(await _run_command_on_device(network, device, command, timeout=15))
+        results.append(await _run_command_on_device(network, device, command, timeout=15, require_root=True))
     for device in _endpoint_devices(network):
         primary = device["primaryInterface"]
         command = "\n".join(
@@ -1307,7 +1426,7 @@ async def _verify_qbv(network: dict[str, Any]) -> list[dict[str, Any]]:
                 f"ip -br addr show dev {shlex.quote(primary)}.20",
             ]
         )
-        results.append(await _run_command_on_device(network, device, command, timeout=10))
+        results.append(await _run_command_on_device(network, device, command, timeout=10, require_root=True))
     return results
 
 
@@ -1322,7 +1441,7 @@ async def _apply_preemption(network: dict[str, Any]) -> list[dict[str, Any]]:
         if device["role"] == "switch":
             lines.append(_taprio_schedule(preemptive=True).format(iface=shlex.quote(primary)))
         lines.append(f"ethtool --show-mm {shlex.quote(primary)}")
-        results.append(await _run_command_on_device(network, device, "\n".join(lines), timeout=20))
+        results.append(await _run_command_on_device(network, device, "\n".join(lines), timeout=20, require_root=True))
     return results
 
 
@@ -1333,7 +1452,7 @@ async def _verify_preemption(network: dict[str, Any]) -> list[dict[str, Any]]:
         lines = ["set -e", f"ethtool --show-mm {shlex.quote(primary)}"]
         if device["role"] == "switch":
             lines.append(f"tc -s qdisc show dev {shlex.quote(primary)} | grep -q taprio")
-        results.append(await _run_command_on_device(network, device, "\n".join(lines), timeout=15))
+        results.append(await _run_command_on_device(network, device, "\n".join(lines), timeout=15, require_root=True))
     return results
 
 
@@ -1342,11 +1461,11 @@ async def _apply_timestamping(network: dict[str, Any]) -> list[dict[str, Any]]:
     for device in _switch_devices(network):
         parent = _device_vlan_parent(device)
         lines = ["set -e", *_ensure_vlan_commands(device), f"ip link set {shlex.quote(parent)}.10 type vlan egress-qos-map 6:3", f"ip -d link show {shlex.quote(parent)}.10"]
-        results.append(await _run_command_on_device(network, device, "\n".join(lines), timeout=15))
+        results.append(await _run_command_on_device(network, device, "\n".join(lines), timeout=15, require_root=True))
     for device in _endpoint_devices(network):
         primary = device["primaryInterface"]
         command = "\n".join(["set -e", f"hwstamp_ctl -i {shlex.quote(primary)} -r 1 -t 1", f"hwstamp_ctl -i {shlex.quote(primary)}"])
-        results.append(await _run_command_on_device(network, device, command, timeout=15))
+        results.append(await _run_command_on_device(network, device, command, timeout=15, require_root=True))
     return results
 
 
@@ -1361,12 +1480,44 @@ async def _verify_timestamping(network: dict[str, Any]) -> list[dict[str, Any]]:
                 f"ip -d link show {shlex.quote(parent)}.20",
             ]
         )
-        results.append(await _run_command_on_device(network, device, command, timeout=10))
+        results.append(await _run_command_on_device(network, device, command, timeout=10, require_root=True))
     for device in _endpoint_devices(network):
         primary = device["primaryInterface"]
         command = "\n".join(["set -e", f"hwstamp_ctl -i {shlex.quote(primary)}", f"ethtool -T {shlex.quote(primary)}"])
-        results.append(await _run_command_on_device(network, device, command, timeout=15))
+        results.append(await _run_command_on_device(network, device, command, timeout=15, require_root=True))
     return results
+
+
+def _wrap_remote_command(*, command: str, device: dict[str, Any], require_root: bool) -> str:
+    base_command = f"sh -lc {shlex.quote(command)}"
+    if not require_root:
+        return base_command
+
+    sudo_command = f"sudo -n sh -lc {shlex.quote(command)}"
+    password = device.get("sshPassword")
+    wrapper_lines = [
+        'if [ "$(id -u)" -eq 0 ]; then',
+        f"  exec {base_command}",
+        "fi",
+        "if ! command -v sudo >/dev/null 2>&1; then",
+        "  echo 'Root oder sudo wird fuer diese Aktion benoetigt.' >&2",
+        "  exit 126",
+        "fi",
+        "if sudo -n true >/dev/null 2>&1; then",
+        f"  exec {sudo_command}",
+        "fi",
+    ]
+    if password:
+        password_command = f"printf '%s\\n' {shlex.quote(str(password))} | sudo -S -p '' sh -lc {shlex.quote(command)}"
+        wrapper_lines.append(f"exec sh -lc {shlex.quote(password_command)}")
+    else:
+        wrapper_lines.extend(
+            [
+                "echo 'Diese Aktion braucht Root-Rechte. Bitte root verwenden oder ein sudo-faehiges Konto mit gespeichertem Passwort konfigurieren.' >&2",
+                "exit 126",
+            ]
+        )
+    return f"sh -lc {shlex.quote(chr(10).join(wrapper_lines))}"
 
 
 async def _run_command_on_device(
@@ -1375,6 +1526,7 @@ async def _run_command_on_device(
     command: str,
     *,
     timeout: int,
+    require_root: bool = False,
 ) -> dict[str, Any]:
     if asyncssh is None:
         return _command_result(
@@ -1395,9 +1547,9 @@ async def _run_command_on_device(
                     f"{device['name']} nutzt einen Jump Host und gleichzeitig ein Passwort. Dieses Routing ist nur fuer schluesselbasierte Zielsysteme freigegeben."
                 )
             jump_host = _require_device(network, jump_host_id)
-            result = await _run_command_via_jump_host(jump_host=jump_host, device=device, command=command, timeout=timeout)
+            result = await _run_command_via_jump_host(jump_host=jump_host, device=device, command=command, timeout=timeout, require_root=require_root)
         else:
-            result = await _run_command_direct(device=device, command=command, timeout=timeout)
+            result = await _run_command_direct(device=device, command=command, timeout=timeout, require_root=require_root)
     except FeatureSelectionError as exc:
         return _command_result(
             device=device,
@@ -1433,13 +1585,13 @@ async def _run_command_on_device(
     )
 
 
-async def _run_command_direct(*, device: dict[str, Any], command: str, timeout: int):
+async def _run_command_direct(*, device: dict[str, Any], command: str, timeout: int, require_root: bool):
     host = device.get("sshHost") or device["ipAddress"]
     username = device.get("sshUsername")
     if not username:
         raise FeatureSelectionError(f"{device['name']} hat keinen SSH-Nutzer hinterlegt.")
 
-    remote_command = f"sh -lc {shlex.quote(command)}"
+    remote_command = _wrap_remote_command(command=command, device=device, require_root=require_root)
     ssh_password = device.get("sshPassword") or None
     if ssh_password:
         if asyncssh is None:
@@ -1475,6 +1627,7 @@ async def _run_command_via_jump_host(
     device: dict[str, Any],
     command: str,
     timeout: int,
+    require_root: bool,
 ):
     jump_host_address = jump_host.get("sshHost") or jump_host["ipAddress"]
     jump_username = jump_host.get("sshUsername")
@@ -1487,7 +1640,7 @@ async def _run_command_via_jump_host(
 
     target_host = device.get("sshHost") or device["ipAddress"]
     target_port = int(device.get("sshPort") or 22)
-    remote_command = f"sh -lc {shlex.quote(command)}"
+    remote_command = _wrap_remote_command(command=command, device=device, require_root=require_root)
     nested_command = (
         f"ssh -o BatchMode=yes -o ConnectTimeout=5 -p {target_port} "
         f"{shlex.quote(f'{target_username}@{target_host}')} "
@@ -1562,9 +1715,9 @@ def _command_result(
         "deviceName": device["name"],
         "success": success,
         "status": status,
-        "command": _clip_text(command, limit=280),
-        "stdout": _clip_text(stdout, limit=900),
-        "message": _clip_text(message, limit=280),
+        "command": _clip_text(command, limit=1400),
+        "stdout": _clip_text(stdout, limit=4000),
+        "message": _clip_text(message, limit=360),
         "durationMs": duration_ms,
     }
 

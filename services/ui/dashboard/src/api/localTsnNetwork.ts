@@ -20,6 +20,7 @@ export type LocalTsnFeatureResult = {
   message: string
   command?: string | null
   stdout?: string | null
+  durationMs?: number | null
   target?: string | null
   latencyMs?: number | null
 }

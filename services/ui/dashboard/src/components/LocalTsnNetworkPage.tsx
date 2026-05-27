@@ -8,6 +8,7 @@ import {
   Divider,
   FormControl,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -119,6 +120,14 @@ type DeleteDialogState =
       name: string
     }
   | null
+
+type ActiveFeatureOperation = {
+  featureId: LocalTsnFeatureCatalogItem['id']
+  mode: 'activate' | 'verify'
+  startedAt: number
+  deviceNames: string[]
+  steps: string[]
+}
 
 const EMPTY_NETWORK_FORM: NetworkFormState = {
   name: '',
@@ -233,6 +242,7 @@ export default function LocalTsnNetworkPage() {
   const [diagnosticsBusy, setDiagnosticsBusy] = useState(false)
   const [lastDiagnosticsResult, setLastDiagnosticsResult] = useState<LocalTsnBetweenDevicesPingResponse['result'] | null>(null)
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>(null)
+  const [activeFeatureOperation, setActiveFeatureOperation] = useState<ActiveFeatureOperation | null>(null)
 
   const selectedNetwork = useMemo(
     () => networks.find((network) => network.id === selectedNetworkId) ?? null,
@@ -260,6 +270,32 @@ export default function LocalTsnNetworkPage() {
   )
 
   const totalDeviceCount = useMemo(() => selectedNetwork?.devices.length ?? 0, [selectedNetwork])
+
+  const requiredFeatureRoles = useMemo(() => {
+    const roles = new Set<TsnDeviceRole>()
+    featureCatalog.forEach((feature) => {
+      feature.requiredRoles.forEach((role) => roles.add(role))
+    })
+    return Array.from(roles)
+  }, [featureCatalog])
+
+  const roleCoverage = useMemo(
+    () =>
+      requiredFeatureRoles.map((role) => {
+        const devices = sortedDevices.filter((device) => device.role === role)
+        return {
+          role,
+          devices,
+          fulfilled: devices.length > 0,
+        }
+      }),
+    [requiredFeatureRoles, sortedDevices],
+  )
+
+  const networkReadinessChecks = useMemo(
+    () => buildNetworkReadinessChecks(t, sortedDevices),
+    [sortedDevices, t],
+  )
 
   const loadState = async (preferredNetworkId?: string) => {
     try {
@@ -297,6 +333,7 @@ export default function LocalTsnNetworkPage() {
   useEffect(() => {
     if (!selectedNetwork) {
       setEditingDeviceId(null)
+      setActiveFeatureOperation(null)
       return
     }
 
@@ -541,6 +578,17 @@ export default function LocalTsnNetworkPage() {
   const handleFeatureAction = async (featureId: LocalTsnFeatureCatalogItem['id'], mode: 'activate' | 'verify') => {
     if (!selectedNetwork) return
     const busyKey = `${featureId}:${mode}`
+    const involvedDevices = selectedNetwork.devices.filter((device) => {
+      const feature = featureCatalog.find((entry) => entry.id === featureId)
+      return feature?.requiredRoles.includes(device.role) ?? false
+    })
+    setActiveFeatureOperation({
+      featureId,
+      mode,
+      startedAt: Date.now(),
+      deviceNames: involvedDevices.map((device) => device.name),
+      steps: featureOperationSteps(t, featureId, mode),
+    })
     setFeatureBusyKey(busyKey)
     try {
       const response = mode === 'activate'
@@ -548,7 +596,14 @@ export default function LocalTsnNetworkPage() {
         : await verifyLocalTsnFeature(apiBase, selectedNetwork.id, featureId)
       applyNetworkUpdate(response.network)
       setNotice({
-        severity: response.result?.status === 'success' ? 'success' : response.result?.status === 'partial' ? 'warning' : 'info',
+        severity:
+          response.result?.status === 'success'
+            ? 'success'
+            : response.result?.status === 'partial'
+            ? 'warning'
+            : response.result?.status === 'failed'
+            ? 'error'
+            : 'info',
         message: response.result?.message || t('localTsnNetwork.feedback.operationCompleted', { defaultValue: 'Aktion abgeschlossen.' }),
       })
     } catch (error) {
@@ -557,6 +612,7 @@ export default function LocalTsnNetworkPage() {
         message: error instanceof Error ? error.message : t('localTsnNetwork.errors.featureAction', { defaultValue: 'TSN-Feature konnte nicht ausgefuehrt werden.' }),
       })
     } finally {
+      setActiveFeatureOperation(null)
       setFeatureBusyKey(null)
     }
   }
@@ -657,11 +713,11 @@ export default function LocalTsnNetworkPage() {
         sx={{
           p: { xs: 2.5, md: 3.5 },
           borderRadius: 4,
-          color: '#f8fbff',
-          border: '1px solid rgba(99, 179, 237, 0.18)',
+          color: '#f8fafc',
+          border: '1px solid rgba(148,163,184,0.18)',
           background:
-            'radial-gradient(circle at top right, rgba(56, 189, 248, 0.22), transparent 34%), linear-gradient(135deg, rgba(7, 29, 43, 0.96), rgba(8, 53, 78, 0.88))',
-          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.24)',
+            'radial-gradient(circle at top right, rgba(148, 163, 184, 0.1), transparent 34%), linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.96))',
+          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.2)',
         }}
       >
         <Stack spacing={2.5}>
@@ -673,16 +729,16 @@ export default function LocalTsnNetworkPage() {
                 label={t('localTsnNetwork.hero.badge', { defaultValue: 'TSN Control Center' })}
                 sx={{
                   alignSelf: 'flex-start',
-                  color: '#e0f2ff',
-                  borderColor: 'rgba(224,242,255,0.28)',
-                  backgroundColor: 'rgba(224,242,255,0.08)',
+                  color: 'rgba(226,232,240,0.92)',
+                  borderColor: 'rgba(148,163,184,0.26)',
+                  backgroundColor: 'rgba(148,163,184,0.08)',
                 }}
                 variant="outlined"
               />
               <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em' }}>
                 {t('localTsnNetwork.hero.title', { defaultValue: 'Lokale TSN-Netze aufbauen, schalten und pruefen' })}
               </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(232,244,255,0.82)', maxWidth: 920, lineHeight: 1.7 }}>
+              <Typography variant="body1" sx={{ color: 'rgba(226,232,240,0.82)', maxWidth: 920, lineHeight: 1.7 }}>
                 {t('localTsnNetwork.hero.subtitle', {
                   defaultValue:
                     'Lege mehrere TSN-Netze an, gliedere Boards sauber nach Rolle und schalte gPTP, 802.1Qbv, Frame Preemption und Timestamping mit klaren Einzelaktionen nacheinander frei.',
@@ -792,13 +848,13 @@ export default function LocalTsnNetworkPage() {
                       sx={{
                         p: 1.75,
                         borderRadius: 3,
-                        borderColor: selected ? 'rgba(56,189,248,0.42)' : 'rgba(255,255,255,0.12)',
-                        backgroundColor: selected ? 'rgba(18, 53, 71, 0.72)' : 'rgba(255,255,255,0.03)',
+                        borderColor: selected ? 'rgba(148,163,184,0.34)' : 'rgba(148,163,184,0.14)',
+                        backgroundColor: selected ? 'rgba(30, 41, 59, 0.72)' : 'rgba(255,255,255,0.03)',
                         cursor: 'pointer',
                         transition: '200ms ease',
                         '&:hover': {
                           transform: 'translateY(-1px)',
-                          borderColor: 'rgba(56,189,248,0.32)',
+                          borderColor: 'rgba(148,163,184,0.28)',
                         },
                       }}
                       onClick={() => handleSelectNetwork(network)}
@@ -884,8 +940,103 @@ export default function LocalTsnNetworkPage() {
                   <Chip icon={<CheckCircle2 size={14} />} label={`${activeFeatureCount}/4 ${t('localTsnNetwork.labels.featuresActive', { defaultValue: 'TSN-Features aktiv' })}`} />
                   <Chip icon={<Activity size={14} />} label={`${t('localTsnNetwork.labels.lastChange', { defaultValue: 'Letzte Aenderung' })}: ${formatUtc(selectedNetwork.updatedUtc)}`} />
                 </Stack>
+
+                <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.15fr) minmax(320px, 0.85fr)' } }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 3,
+                      borderColor: 'rgba(148,163,184,0.16)',
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    <Stack spacing={1}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        {t('localTsnNetwork.readiness.title', { defaultValue: 'Setup-Check vor TSN-Aktionen' })}
+                      </Typography>
+                      {networkReadinessChecks.map((check) => (
+                        <Stack
+                          key={check.label}
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={0.9}
+                          alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        >
+                          <Chip size="small" color={check.ready ? 'success' : 'warning'} label={check.label} />
+                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                            {check.detail}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Paper>
+
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 3,
+                      borderColor: 'rgba(148,163,184,0.16)',
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    <Stack spacing={1}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        {t('localTsnNetwork.runbook.title', { defaultValue: 'Empfohlener Ablauf' })}
+                      </Typography>
+                      {featureRunbookPreview(t).map((step) => (
+                        <Typography key={step} variant="body2" color="text.secondary" sx={{ lineHeight: 1.65 }}>
+                          {step}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  </Paper>
+                </Box>
               </Stack>
             </SurfaceCard>
+
+            {activeFeatureOperation && (
+              <SurfaceCard
+                icon={<Activity size={18} />}
+                title={t('localTsnNetwork.progress.title', { defaultValue: 'Aktion laeuft' })}
+              >
+                <Stack spacing={1.5}>
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} justifyContent="space-between">
+                    <Box>
+                      <Typography sx={{ fontWeight: 700 }}>
+                        {`${featureShortLabel(t, activeFeatureOperation.featureId)} · ${featureActionLabel(t, activeFeatureOperation.mode)}`}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.65 }}>
+                        {activeFeatureOperation.deviceNames.length > 0
+                          ? t('localTsnNetwork.progress.devices', {
+                              defaultValue: 'Beteiligte Boards: {{devices}}',
+                              devices: activeFeatureOperation.deviceNames.join(', '),
+                            })
+                          : t('localTsnNetwork.progress.devicesUnknown', {
+                              defaultValue: 'Die Aktion laeuft gerade auf dem ausgewaehlten Netz.',
+                            })}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      color="info"
+                      label={t('localTsnNetwork.progress.since', {
+                        defaultValue: 'seit {{time}}',
+                        time: new Date(activeFeatureOperation.startedAt).toLocaleTimeString(),
+                      })}
+                    />
+                  </Stack>
+                  <LinearProgress sx={{ borderRadius: 999, height: 8 }} />
+                  <Stack spacing={0.8}>
+                    {activeFeatureOperation.steps.map((step, index) => (
+                      <Typography key={`${activeFeatureOperation.featureId}-${index}`} variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                        {`${index + 1}. ${step}`}
+                      </Typography>
+                    ))}
+                  </Stack>
+                </Stack>
+              </SurfaceCard>
+            )}
 
             <SurfaceCard
               icon={<Cable size={18} />}
@@ -902,6 +1053,7 @@ export default function LocalTsnNetworkPage() {
                       onSsh={() => openDeviceSsh(device)}
                       onDelete={() => setDeleteDialog({ kind: 'device', networkId: selectedNetwork.id, deviceId: device.id, name: device.name })}
                       pingBusy={devicePingBusyId === device.id}
+                      jumpHostName={device.jumpHostDeviceId ? selectedNetwork.devices.find((candidate) => candidate.id === device.jumpHostDeviceId)?.name : undefined}
                       t={t}
                     />
                     {index < sortedDevices.length - 1 && (
@@ -943,6 +1095,13 @@ export default function LocalTsnNetworkPage() {
                         ))}
                       </Select>
                     </FormControl>
+
+                    <Alert severity="info" sx={{ gridColumn: '1 / -1' }}>
+                      {t('localTsnNetwork.devices.roleHelp', {
+                        defaultValue:
+                          'Die TSN-Funktionen nutzen die Board-Rollen aus diesem Feld. Fuer gPTP, Qbv, Qbu und Timestamping brauchst du mindestens ein Switch- und ein Endpoint-Board.',
+                      })}
+                    </Alert>
 
                     <TextField
                       size="small"
@@ -1004,6 +1163,10 @@ export default function LocalTsnNetworkPage() {
                         ))}
                       </Select>
                     </FormControl>
+
+                    <Alert severity="info" sx={{ gridColumn: '1 / -1' }}>
+                      {roleSetupHint(t, deviceForm.role)}
+                    </Alert>
 
                     <TextField
                       size="small"
@@ -1097,10 +1260,68 @@ export default function LocalTsnNetworkPage() {
                 title={t('localTsnNetwork.features.title', { defaultValue: 'TSN-Funktionen mit Einzelaktionen' })}
               >
                 <Stack spacing={1.5}>
+                  <Alert severity="info">
+                    {t('localTsnNetwork.features.scope', {
+                      defaultValue:
+                        'Bezug: Die Anzeigen in diesem Panel gelten nur fuer das aktuell ausgewaehlte Netz "{{network}}". Pro TSN-Funktion wird das Ergebnis der letzten Aktion (Aktivieren oder Pruefen) gezeigt.',
+                      network: selectedNetwork.name,
+                    })}
+                  </Alert>
+
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 3,
+                      borderColor: 'rgba(148,163,184,0.14)',
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    <Stack spacing={1.25}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        {t('localTsnNetwork.features.roleCoverageTitle', {
+                          defaultValue: 'Rollenabdeckung fuer TSN-Funktionen',
+                        })}
+                      </Typography>
+                      <Stack spacing={0.75}>
+                        {roleCoverage.map(({ role, devices, fulfilled }) => (
+                          <Stack
+                            key={role}
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={0.75}
+                            alignItems={{ xs: 'flex-start', sm: 'center' }}
+                          >
+                            <Chip
+                              size="small"
+                              color={fulfilled ? 'success' : 'warning'}
+                              label={roleLabel(t, role)}
+                            />
+                            <Typography variant="body2" color={fulfilled ? 'text.secondary' : 'warning.main'}>
+                              {fulfilled
+                                ? devices.map((device) => device.name).join(', ')
+                                : t('localTsnNetwork.features.roleMissing', {
+                                    defaultValue: 'Noch kein Board mit dieser Rolle vorhanden.',
+                                  })}
+                            </Typography>
+                          </Stack>
+                        ))}
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                        {t('localTsnNetwork.features.roleSetupHint', {
+                          defaultValue:
+                            'Rollen setzt du im Panel "Board zum Netz hinzufuegen" im Feld "Rolle". Bestehende Boards passt du oben ueber Bearbeiten an.',
+                        })}
+                      </Typography>
+                    </Stack>
+                  </Paper>
+
                   {featureCatalog.map((feature) => {
                     const state = selectedNetwork.featureStates[feature.id]
                     const requirementsMet = feature.requiredRoles.every((role) => selectedNetwork.devices.some((device) => device.role === role))
+                    const missingRoles = feature.requiredRoles.filter((role) => !selectedNetwork.devices.some((device) => device.role === role))
                     const involvedDevices = selectedNetwork.devices.filter((device) => feature.requiredRoles.includes(device.role))
+                    const readinessIssues = featureConfigIssues(t, feature.id, involvedDevices)
+                    const featureReady = requirementsMet && readinessIssues.length === 0
                     return (
                       <Paper
                         key={feature.id}
@@ -1108,7 +1329,7 @@ export default function LocalTsnNetworkPage() {
                         sx={{
                           p: 2,
                           borderRadius: 3,
-                          borderColor: 'rgba(255,255,255,0.12)',
+                          borderColor: 'rgba(148,163,184,0.14)',
                           backgroundColor: 'rgba(255,255,255,0.03)',
                         }}
                       >
@@ -1122,6 +1343,18 @@ export default function LocalTsnNetworkPage() {
                               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
                                 {feature.summary}
                               </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                                {state?.updatedUtc
+                                  ? t('localTsnNetwork.features.lastRunInfo', {
+                                      defaultValue: '{{action}} zuletzt am {{time}} im Netz "{{network}}".',
+                                      action: featureActionLabel(t, state.lastAction),
+                                      time: formatUtc(state.updatedUtc),
+                                      network: selectedNetwork.name,
+                                    })
+                                  : t('localTsnNetwork.features.noRunYet', {
+                                      defaultValue: 'Noch keine Aktion fuer dieses Feature in diesem Netz ausgefuehrt.',
+                                    })}
+                              </Typography>
                             </Stack>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                               <Button
@@ -1129,7 +1362,7 @@ export default function LocalTsnNetworkPage() {
                                 variant="contained"
                                 startIcon={featureBusyKey === `${feature.id}:activate` ? <CircularProgress size={14} color="inherit" /> : <PlugZap size={14} />}
                                 onClick={() => handleFeatureAction(feature.id, 'activate')}
-                                disabled={Boolean(featureBusyKey) || !requirementsMet}
+                                disabled={Boolean(featureBusyKey) || !featureReady}
                               >
                                 {t('localTsnNetwork.actions.activateFeature', { defaultValue: 'Aktivieren' })}
                               </Button>
@@ -1138,7 +1371,7 @@ export default function LocalTsnNetworkPage() {
                                 variant="outlined"
                                 startIcon={featureBusyKey === `${feature.id}:verify` ? <CircularProgress size={14} color="inherit" /> : <RefreshCcw size={14} />}
                                 onClick={() => handleFeatureAction(feature.id, 'verify')}
-                                disabled={Boolean(featureBusyKey) || !requirementsMet}
+                                disabled={Boolean(featureBusyKey) || !featureReady}
                               >
                                 {t('localTsnNetwork.actions.verifyFeature', { defaultValue: 'Pruefen' })}
                               </Button>
@@ -1165,9 +1398,17 @@ export default function LocalTsnNetworkPage() {
 
                           {!requirementsMet && (
                             <Alert severity="warning">
-                              {t('localTsnNetwork.features.requirementsMissing', {
-                                defaultValue: 'Die benoetigten Rollen sind im Netz noch nicht komplett belegt.',
+                              {t('localTsnNetwork.features.requirementsMissingDetailed', {
+                                defaultValue:
+                                  'Fehlende Rollen: {{roles}}. Weise die Rollen im Board-Formular ueber das Feld "Rolle" zu und speichere das Board.',
+                                roles: missingRoles.map((role) => roleLabel(t, role)).join(', '),
                               })}
+                            </Alert>
+                          )}
+
+                          {requirementsMet && readinessIssues.length > 0 && (
+                            <Alert severity="warning">
+                              {readinessIssues.join(' ')}
                             </Alert>
                           )}
 
@@ -1295,7 +1536,7 @@ export default function LocalTsnNetworkPage() {
                         sx={{
                           p: 1.5,
                           borderRadius: 3,
-                          borderColor: 'rgba(255,255,255,0.1)',
+                          borderColor: 'rgba(148,163,184,0.14)',
                           backgroundColor: 'rgba(255,255,255,0.025)',
                         }}
                       >
@@ -1377,9 +1618,9 @@ function SurfaceCard({
       sx={{
         p: 2.5,
         borderRadius: 4,
-        border: '1px solid rgba(255,255,255,0.08)',
-        backgroundColor: 'rgba(18,18,18,0.78)',
-        boxShadow: '0 14px 36px rgba(0,0,0,0.18)',
+        border: '1px solid rgba(148,163,184,0.14)',
+        backgroundColor: 'rgba(15,23,42,0.72)',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.16)',
       }}
     >
       <Stack spacing={2}>
@@ -1393,8 +1634,8 @@ function SurfaceCard({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#8ad5ff',
-                backgroundColor: 'rgba(46, 129, 177, 0.16)',
+                color: '#cbd5e1',
+                backgroundColor: 'rgba(148,163,184,0.12)',
               }}
             >
               {icon}
@@ -1419,13 +1660,13 @@ function MetricTile({ icon, value, label }: { icon: ReactNode; value: string; la
         minWidth: 0,
         p: 1.5,
         borderRadius: 3,
-        backgroundColor: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: '#f0f9ff',
+        backgroundColor: 'rgba(15,23,42,0.6)',
+        border: '1px solid rgba(148,163,184,0.14)',
+        color: '#f8fafc',
       }}
     >
       <Stack spacing={0.75}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'rgba(224, 242, 255, 0.92)' }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'rgba(226,232,240,0.88)' }}>
           {icon}
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {label}
@@ -1447,6 +1688,7 @@ function DeviceTopologyCard({
   onSsh,
   onDelete,
   pingBusy,
+  jumpHostName,
   t,
 }: {
   device: LocalTsnDevice
@@ -1456,10 +1698,14 @@ function DeviceTopologyCard({
   onSsh: () => void
   onDelete: () => void
   pingBusy: boolean
+  jumpHostName?: string
   t: ReturnType<typeof useTranslation>['t']
 }) {
   const activeCount = countActiveFeatures(device.featureStates)
   const Icon = DEVICE_ICONS[device.icon as keyof typeof DEVICE_ICONS] || Server
+  const deviceIssues = deviceConfigIssues(t, device)
+  const interfaceSummary = formatInterfaceSummary(device)
+  const sshSummary = `${device.sshUsername || 'n/a'}@${device.sshHost || device.ipAddress}:${device.sshPort || 22}`
 
   return (
     <Paper
@@ -1469,8 +1715,8 @@ function DeviceTopologyCard({
         maxWidth: 280,
         p: 1.75,
         borderRadius: 3,
-        borderColor: 'rgba(255,255,255,0.12)',
-        backgroundColor: 'rgba(255,255,255,0.025)',
+        borderColor: 'rgba(148,163,184,0.14)',
+        backgroundColor: 'rgba(15,23,42,0.44)',
       }}
     >
       <Stack spacing={1.25}>
@@ -1483,8 +1729,8 @@ function DeviceTopologyCard({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#b7e7ff',
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              color: '#e2e8f0',
+              backgroundColor: 'rgba(148,163,184,0.12)',
             }}
           >
             <Icon size={18} />
@@ -1505,6 +1751,26 @@ function DeviceTopologyCard({
         <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
           {device.description || `${t('localTsnNetwork.labels.interface', { defaultValue: 'Interface' })}: ${device.primaryInterface}`}
         </Typography>
+
+        <Stack spacing={0.35}>
+          <Typography variant="caption" color="text.secondary">
+            {`${t('localTsnNetwork.labels.interface', { defaultValue: 'Interface' })}: ${interfaceSummary}`}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {`SSH: ${sshSummary}`}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {jumpHostName
+              ? `${t('localTsnNetwork.fields.jumpHost', { defaultValue: 'Jump Host' })}: ${jumpHostName}`
+              : t('localTsnNetwork.deviceDetails.directAccess', { defaultValue: 'Direkter SSH-Zugriff ohne Jump Host.' })}
+          </Typography>
+        </Stack>
+
+        {deviceIssues.length > 0 && (
+          <Alert severity="warning" sx={{ py: 0.25 }}>
+            {deviceIssues[0]}
+          </Alert>
+        )}
 
         <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
           {(['gptp', 'qbv', 'preemption', 'timestamping'] as const).map((featureId) => (
@@ -1554,7 +1820,7 @@ function MoveConnector({ label }: { label: string }) {
           width: 56,
           height: 2,
           borderRadius: 999,
-          background: 'linear-gradient(90deg, rgba(56,189,248,0.16), rgba(56,189,248,0.85), rgba(56,189,248,0.16))',
+          background: 'linear-gradient(90deg, rgba(148,163,184,0.12), rgba(148,163,184,0.72), rgba(148,163,184,0.12))',
         }}
       />
     </Stack>
@@ -1562,17 +1828,19 @@ function MoveConnector({ label }: { label: string }) {
 }
 
 function FeatureResultRow({ result, compact = false }: { result: LocalTsnFeatureResult; compact?: boolean }) {
+  const hasDetails = Boolean(result.command || result.stdout || result.target || result.durationMs)
+
   return (
     <Paper
       variant="outlined"
       sx={{
         p: compact ? 1 : 1.25,
         borderRadius: 2.5,
-        borderColor: result.success ? 'rgba(34,197,94,0.25)' : 'rgba(248,113,113,0.25)',
-        backgroundColor: result.success ? 'rgba(34,197,94,0.05)' : 'rgba(248,113,113,0.05)',
+        borderColor: result.success ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.22)',
+        backgroundColor: result.success ? 'rgba(74,222,128,0.04)' : 'rgba(248,113,113,0.045)',
       }}
     >
-      <Stack spacing={0.5}>
+      <Stack spacing={0.75}>
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
           <Typography variant="body2" sx={{ fontWeight: 700 }}>
             {result.deviceName || 'Netzwerk'}
@@ -1582,10 +1850,86 @@ function FeatureResultRow({ result, compact = false }: { result: LocalTsnFeature
         <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
           {result.message}
         </Typography>
-        {result.command && (
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.72)', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
-            {result.command}
-          </Typography>
+        {(result.durationMs || result.target) && (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {typeof result.durationMs === 'number' && <Chip size="small" variant="outlined" label={`${result.durationMs} ms`} />}
+            {result.target && <Chip size="small" variant="outlined" label={result.target} />}
+          </Stack>
+        )}
+        {hasDetails && (
+          <Box
+            component="details"
+            sx={{
+              mt: 0.25,
+              borderRadius: 2,
+              border: '1px solid rgba(148,163,184,0.12)',
+              backgroundColor: 'rgba(15,23,42,0.32)',
+              px: 1,
+              py: 0.75,
+              '& summary': {
+                cursor: 'pointer',
+                color: 'text.secondary',
+                listStyle: 'none',
+                userSelect: 'none',
+              },
+              '& summary::-webkit-details-marker': {
+                display: 'none',
+              },
+            }}
+          >
+            <Typography component="summary" variant="caption">
+              Details anzeigen
+            </Typography>
+            <Stack spacing={0.75} sx={{ mt: 1 }}>
+              {result.command && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Kommando
+                  </Typography>
+                  <Box
+                    component="pre"
+                    sx={{
+                      m: 0,
+                      mt: 0.5,
+                      p: 1,
+                      borderRadius: 2,
+                      overflowX: 'auto',
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      color: 'rgba(226,232,240,0.92)',
+                      backgroundColor: 'rgba(2,6,23,0.7)',
+                    }}
+                  >
+                    {result.command}
+                  </Box>
+                </Box>
+              )}
+              {result.stdout && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Ausgabe / Log
+                  </Typography>
+                  <Box
+                    component="pre"
+                    sx={{
+                      m: 0,
+                      mt: 0.5,
+                      p: 1,
+                      borderRadius: 2,
+                      maxHeight: compact ? 200 : 280,
+                      overflow: 'auto',
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      color: 'rgba(226,232,240,0.92)',
+                      backgroundColor: 'rgba(2,6,23,0.7)',
+                    }}
+                  >
+                    {result.stdout}
+                  </Box>
+                </Box>
+              )}
+            </Stack>
+          </Box>
         )}
       </Stack>
     </Paper>
@@ -1621,6 +1965,17 @@ function featureStatusLabel(t: ReturnType<typeof useTranslation>['t'], state?: L
       return t('localTsnNetwork.status.unknown', { defaultValue: 'unbekannt' })
     default:
       return t('localTsnNetwork.status.inactive', { defaultValue: 'nicht aktiv' })
+  }
+}
+
+function featureActionLabel(t: ReturnType<typeof useTranslation>['t'], action?: string | null) {
+  switch (action) {
+    case 'activate':
+      return t('localTsnNetwork.actions.activateFeature', { defaultValue: 'Aktivieren' })
+    case 'verify':
+      return t('localTsnNetwork.actions.verifyFeature', { defaultValue: 'Pruefen' })
+    default:
+      return t('localTsnNetwork.actions.unknownAction', { defaultValue: 'Aktion' })
   }
 }
 
@@ -1687,4 +2042,212 @@ function activityLabel(t: ReturnType<typeof useTranslation>['t'], level: 'info' 
     default:
       return t('localTsnNetwork.activity.info', { defaultValue: 'Info' })
   }
+}
+
+function featureRunbookPreview(t: ReturnType<typeof useTranslation>['t']) {
+  return [
+    t('localTsnNetwork.runbook.step1', { defaultValue: '1. Netz anlegen und Boards mit eindeutiger Rolle pflegen.' }),
+    t('localTsnNetwork.runbook.step2', { defaultValue: '2. Switch mit Primaer-/Sekundaer-Port und Bridge Parent eintragen, Endpunkte mit Primaer-Port.' }),
+    t('localTsnNetwork.runbook.step3', { defaultValue: '3. Erst gPTP aktivieren und pruefen, danach Qbv, Qbu und Timestamping schrittweise zuschalten.' }),
+    t('localTsnNetwork.runbook.step4', { defaultValue: '4. Bei Fehlern die Details pro Board aufklappen und die letzten Remote-Logs lesen.' }),
+  ]
+}
+
+function featureOperationSteps(t: ReturnType<typeof useTranslation>['t'], featureId: LocalTsnFeatureCatalogItem['id'], mode: 'activate' | 'verify') {
+  if (mode === 'verify') {
+    switch (featureId) {
+      case 'gptp':
+        return [
+          t('localTsnNetwork.progress.gptpVerify1', { defaultValue: 'ptp4l- und phc2sys-Prozesse auf Switch und Endpoint pruefen.' }),
+          t('localTsnNetwork.progress.gptpVerify2', { defaultValue: 'Letzte gPTP-Logs und den PHC-Vergleich des Endpunkts einsammeln.' }),
+        ]
+      case 'qbv':
+        return [
+          t('localTsnNetwork.progress.qbvVerify1', { defaultValue: 'VLAN-Interfaces und Taprio-Konfiguration gegen den aktuellen Board-Zustand pruefen.' }),
+        ]
+      case 'preemption':
+        return [
+          t('localTsnNetwork.progress.qbuVerify1', { defaultValue: 'MAC-Merge-Status und Taprio-Pruefung je Board auslesen.' }),
+        ]
+      case 'timestamping':
+        return [
+          t('localTsnNetwork.progress.tsVerify1', { defaultValue: 'Hardware-Timestamping und Interface-Capabilities je Endpoint auslesen.' }),
+        ]
+      default:
+        return [t('localTsnNetwork.progress.genericVerify', { defaultValue: 'Remote-Status wird geprueft.' })]
+    }
+  }
+
+  switch (featureId) {
+    case 'gptp':
+      return [
+        t('localTsnNetwork.progress.gptp1', { defaultValue: 'Switch startet phc2sys von CLOCK_REALTIME auf die PHC und danach ptp4l als Boundary Clock.' }),
+        t('localTsnNetwork.progress.gptp2', { defaultValue: 'Endpoint stoppt timesyncd, startet ptp4l und zieht danach die PHC auf CLOCK_REALTIME.' }),
+        t('localTsnNetwork.progress.gptp3', { defaultValue: 'API wartet kurz und haengt den letzten Logauszug pro Prozess an.' }),
+      ]
+    case 'qbv':
+      return [
+        t('localTsnNetwork.progress.qbv1', { defaultValue: 'VLAN 10 und 20 werden auf Switch und Endpoint vorbereitet.' }),
+        t('localTsnNetwork.progress.qbv2', { defaultValue: 'Auf dem Switch wird Taprio mit TSN-Slot und Best-Effort-Fenster gesetzt.' }),
+      ]
+    case 'preemption':
+      return [
+        t('localTsnNetwork.progress.qbu1', { defaultValue: 'MAC Merge wird auf beiden Seiten eingeschaltet.' }),
+        t('localTsnNetwork.progress.qbu2', { defaultValue: 'Der Switch bekommt einen Taprio-Plan mit Preemption-Flags.' }),
+      ]
+    case 'timestamping':
+      return [
+        t('localTsnNetwork.progress.ts1', { defaultValue: 'QoS-Mapping fuer priorisierten Traffic und Hardware-Timestamping werden vorbereitet.' }),
+        t('localTsnNetwork.progress.ts2', { defaultValue: 'Die Rueckgabe enthaelt den letzten hwstamp-/ethtool-Auszug des Boards.' }),
+      ]
+    default:
+      return [t('localTsnNetwork.progress.genericActivate', { defaultValue: 'Remote-Aktion wird ausgefuehrt.' })]
+  }
+}
+
+function roleSetupHint(t: ReturnType<typeof useTranslation>['t'], role: TsnDeviceRole) {
+  switch (role) {
+    case 'switch':
+      return t('localTsnNetwork.setup.switch', {
+        defaultValue: 'Switch-Empfehlung: SSH idealerweise als root oder per sudo-faehigem Nutzer, primaeres Port-Interface z. B. eth0, zweites TSN-Port-Interface z. B. eth2 und Bridge / VLAN Parent z. B. br0.',
+      })
+    case 'endpoint':
+      return t('localTsnNetwork.setup.endpoint', {
+        defaultValue: 'Endpoint-Empfehlung: primaeres TSN-Interface z. B. eth0, VLAN-Suffix passend zur Ziel-IP und fuer gPTP ein Nutzer mit Root- oder sudo-Rechten.',
+      })
+    case 'controller':
+      return t('localTsnNetwork.setup.controller', {
+        defaultValue: 'Controller dient meist als Management- oder Jump-Host. Trage hier vor allem die erreichbare Management-IP und den SSH-Zugang sauber ein.',
+      })
+    default:
+      return t('localTsnNetwork.setup.generic', {
+        defaultValue: 'Tipp: Rolle zuerst setzen. Dadurch werden sinnvolle Standardwerte fuer Icon und Interfaces vorbelegt.',
+      })
+  }
+}
+
+function buildNetworkReadinessChecks(t: ReturnType<typeof useTranslation>['t'], devices: LocalTsnDevice[]) {
+  const switches = devices.filter((device) => device.role === 'switch')
+  const endpoints = devices.filter((device) => device.role === 'endpoint')
+  const tsnDevices = devices.filter((device) => device.role === 'switch' || device.role === 'endpoint')
+  const jumpPasswordConflict = tsnDevices.filter((device) => device.jumpHostDeviceId && device.hasSshPassword)
+
+  return [
+    {
+      label: t('localTsnNetwork.readiness.roles', { defaultValue: 'Rollen' }),
+      ready: switches.length > 0 && endpoints.length > 0,
+      detail:
+        switches.length > 0 && endpoints.length > 0
+          ? t('localTsnNetwork.readiness.rolesOk', {
+              defaultValue: 'Switch: {{switches}} | Endpoints: {{endpoints}}',
+              switches: switches.map((device) => device.name).join(', '),
+              endpoints: endpoints.map((device) => device.name).join(', '),
+            })
+          : t('localTsnNetwork.readiness.rolesMissing', { defaultValue: 'Fuer die TSN-Features braucht das Netz mindestens einen Switch und einen Endpoint.' }),
+    },
+    {
+      label: t('localTsnNetwork.readiness.ssh', { defaultValue: 'SSH' }),
+      ready: tsnDevices.every((device) => Boolean(device.sshUsername)),
+      detail: tsnDevices.every((device) => Boolean(device.sshUsername))
+        ? t('localTsnNetwork.readiness.sshOk', { defaultValue: 'Alle TSN-Boards haben einen SSH-Nutzer hinterlegt.' })
+        : t('localTsnNetwork.readiness.sshMissing', {
+            defaultValue: 'Fehlt bei: {{devices}}',
+            devices: tsnDevices.filter((device) => !device.sshUsername).map((device) => device.name).join(', '),
+          }),
+    },
+    {
+      label: t('localTsnNetwork.readiness.ports', { defaultValue: 'Switch-Ports' }),
+      ready: switches.every((device) => Boolean(device.secondaryInterface)),
+      detail: switches.length === 0
+        ? t('localTsnNetwork.readiness.portsEmpty', { defaultValue: 'Noch kein Switch vorhanden.' })
+        : switches.every((device) => Boolean(device.secondaryInterface))
+        ? t('localTsnNetwork.readiness.portsOk', { defaultValue: 'Alle Switches haben Primaer- und Sekundaer-Port eingetragen.' })
+        : t('localTsnNetwork.readiness.portsMissing', {
+            defaultValue: 'Zweites Interface fehlt bei: {{devices}}',
+            devices: switches.filter((device) => !device.secondaryInterface).map((device) => device.name).join(', '),
+          }),
+    },
+    {
+      label: t('localTsnNetwork.readiness.vlanParent', { defaultValue: 'VLAN Parent' }),
+      ready: switches.every((device) => Boolean(device.bridgeInterface)),
+      detail: switches.length === 0
+        ? t('localTsnNetwork.readiness.vlanParentEmpty', { defaultValue: 'Noch kein Switch vorhanden.' })
+        : switches.every((device) => Boolean(device.bridgeInterface))
+        ? t('localTsnNetwork.readiness.vlanParentOk', { defaultValue: 'Alle Switches haben einen Bridge / VLAN Parent gesetzt.' })
+        : t('localTsnNetwork.readiness.vlanParentMissing', {
+            defaultValue: 'Bridge Parent fehlt bei: {{devices}}',
+            devices: switches.filter((device) => !device.bridgeInterface).map((device) => device.name).join(', '),
+          }),
+    },
+    {
+      label: t('localTsnNetwork.readiness.routing', { defaultValue: 'Jump Hosts' }),
+      ready: jumpPasswordConflict.length === 0,
+      detail: jumpPasswordConflict.length === 0
+        ? t('localTsnNetwork.readiness.routingOk', { defaultValue: 'Keine ungueltige Jump-Host/Passwort-Kombination erkannt.' })
+        : t('localTsnNetwork.readiness.routingIssue', {
+            defaultValue: 'Jump Host plus gespeichertes Passwort ist fuer TSN-Aktionen nicht unterstuetzt: {{devices}}',
+            devices: jumpPasswordConflict.map((device) => device.name).join(', '),
+          }),
+    },
+  ]
+}
+
+function deviceConfigIssues(t: ReturnType<typeof useTranslation>['t'], device: LocalTsnDevice) {
+  if (!device.sshUsername) {
+    return [t('localTsnNetwork.deviceIssues.ssh', { defaultValue: `${device.name}: SSH-Nutzer fehlt.` })]
+  }
+  if (device.role === 'switch' && !device.secondaryInterface) {
+    return [t('localTsnNetwork.deviceIssues.secondary', { defaultValue: `${device.name}: zweites TSN-Port-Interface fehlt.` })]
+  }
+  if (device.role === 'switch' && !device.bridgeInterface) {
+    return [t('localTsnNetwork.deviceIssues.bridge', { defaultValue: `${device.name}: Bridge / VLAN Parent fehlt.` })]
+  }
+  if (device.jumpHostDeviceId && device.hasSshPassword) {
+    return [t('localTsnNetwork.deviceIssues.jumpHost', { defaultValue: `${device.name}: Jump Host plus Passwort wird fuer TSN nicht unterstuetzt.` })]
+  }
+  return []
+}
+
+function featureConfigIssues(
+  t: ReturnType<typeof useTranslation>['t'],
+  featureId: LocalTsnFeatureCatalogItem['id'],
+  devices: LocalTsnDevice[],
+) {
+  const issues: string[] = []
+  const switches = devices.filter((device) => device.role === 'switch')
+
+  devices.forEach((device) => {
+    if (!device.sshUsername) {
+      issues.push(t('localTsnNetwork.featureIssues.ssh', { defaultValue: `${device.name}: SSH-Nutzer fehlt.` }))
+    }
+    if (device.jumpHostDeviceId && device.hasSshPassword) {
+      issues.push(t('localTsnNetwork.featureIssues.jump', { defaultValue: `${device.name}: Jump Host plus Passwort wird fuer TSN-Aktionen nicht unterstuetzt.` }))
+    }
+  })
+
+  if (featureId === 'gptp') {
+    switches.forEach((device) => {
+      if (!device.secondaryInterface) {
+        issues.push(t('localTsnNetwork.featureIssues.secondary', { defaultValue: `${device.name}: gPTP am Switch braucht ein zweites Interface, z. B. eth2.` }))
+      }
+    })
+  }
+
+  if (featureId === 'qbv' || featureId === 'timestamping') {
+    switches.forEach((device) => {
+      if (!device.bridgeInterface) {
+        issues.push(t('localTsnNetwork.featureIssues.bridge', { defaultValue: `${device.name}: fuer VLAN/Qbv bitte Bridge / VLAN Parent, z. B. br0, hinterlegen.` }))
+      }
+    })
+  }
+
+  return Array.from(new Set(issues))
+}
+
+function formatInterfaceSummary(device: LocalTsnDevice) {
+  const parts = [device.primaryInterface ? `P: ${device.primaryInterface}` : null]
+  if (device.secondaryInterface) parts.push(`S: ${device.secondaryInterface}`)
+  if (device.bridgeInterface) parts.push(`Bridge: ${device.bridgeInterface}`)
+  if (device.nodeAddressSuffix) parts.push(`VLAN: .${device.nodeAddressSuffix}`)
+  return parts.filter(Boolean).join(' | ')
 }
