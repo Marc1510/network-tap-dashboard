@@ -54,6 +54,12 @@
     "licenseAbsent": "not present",
     "fpgaTemp": "FPGA temp.",
     "fpgaId": "FPGA ID",
+    "activeConfiguration": "Active configuration",
+    "licenseRegister": "License register",
+    "featureLicenses": "Feature licenses",
+    "enabled": "enabled",
+    "disabled": "disabled",
+    "enabledFeatureCount": "{{enabled}}/{{total}} features enabled",
     "rawData": "Raw data",
     "copy": "Copy",
     "copied": "Copied"

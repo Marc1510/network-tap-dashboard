@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Stack, Typography, Divider, Skeleton, Tooltip, Button, Paper } from '@mui/material'
+import { Box, Stack, Typography, Divider, Skeleton, Tooltip, Button, Paper, Chip } from '@mui/material'
 import { ClipboardCopy, Cpu, ShieldCheck, ShieldAlert, Thermometer, Fingerprint, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getFpgaStatus, type FpgaStatus } from '../api/license'
 
 type LicenseData = FpgaStatus
+
+type LicenseSummary = {
+  boardRevision: unknown
+  fpgaRevision: unknown
+  fpgaId: unknown
+  fpgaTemp: number | null
+  licenseRegister: unknown
+  licensePresent: boolean | undefined
+  featureLicensesEnabled: boolean | undefined
+  licenseFeatures: { name: string; status: boolean; description: string }[]
+  activeConfiguration: unknown
+}
 
 type LicenseStatusPanelProps = {
   apiBase: string
@@ -104,16 +116,25 @@ export default function LicenseStatusPanel({ apiBase, active }: LicenseStatusPan
   const rawString = useMemo(() => {
     if (!data || data === 'loading') return ''
     try {
-      return JSON.stringify(data.raw ?? {}, null, 2)
+      return JSON.stringify(data, null, 2)
     } catch {
-      return String(data.raw ?? '')
+      return String(data)
     }
   }, [data])
 
-  const fpgaTemp = useMemo(() => {
+  const summary = useMemo(() => {
     if (!data || data === 'loading') return null
-    const val = data['fpga_temperature_celsius']
-    return typeof val === 'number' ? val : null
+    return {
+      boardRevision: getStatusValue(data, 'board_revision'),
+      fpgaRevision: getStatusValue(data, 'fpga_revision'),
+      fpgaId: getStatusValue(data, 'fpga_id'),
+      fpgaTemp: toNumber(getStatusValue(data, 'fpga_temperature_celsius')),
+      licenseRegister: getStatusValue(data, 'license_register') ?? getRawValue(data, 'LICENSE'),
+      licensePresent: getBooleanStatusValue(data, 'license_present') ?? getBooleanStatusValue(data, 'license'),
+      featureLicensesEnabled: getBooleanStatusValue(data, 'feature_licenses_enabled'),
+      licenseFeatures: getLicenseFeatures(data),
+      activeConfiguration: getStatusValue(data, 'active_configuration') ?? getStatusValue(data, 'use_case')
+    }
   }, [data])
 
   const handleCopy = async () => {
@@ -183,36 +204,84 @@ export default function LicenseStatusPanel({ apiBase, active }: LicenseStatusPan
             <StatCard
               icon={<Cpu size={16} />}
               label={t('license.boardRevision')}
-              value={String(data['board_revision'] ?? '\u2014')}
+              value={String(summary?.boardRevision ?? '\u2014')}
             />
 
             <StatCard
               icon={<Cpu size={16} />}
               label={t('license.fpgaRevision')}
-              value={String(data['fpga_revision'] ?? '\u2014')}
+              value={String(summary?.fpgaRevision ?? '\u2014')}
             />
 
             <StatCard
-              icon={data['license'] ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+              icon={summary?.featureLicensesEnabled || summary?.licensePresent ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
               label={t('license.license')}
-              value={data['license'] ? t('license.licensePresent') : t('license.licenseAbsent')}
-              accentColor={data['license'] ? '#10b981' : '#ff0b55'}
+              value={formatLicenseSummary(t, summary)}
+              accentColor={summary?.featureLicensesEnabled || summary?.licensePresent ? '#10b981' : '#ff0b55'}
             />
 
             <StatCard
               icon={<Thermometer size={16} />}
               label={t('license.fpgaTemp')}
-              value={fpgaTemp != null ? `${fpgaTemp} \u00b0C` : '\u2014'}
-              accentColor={fpgaTemp != null && fpgaTemp > 70 ? '#ff0b55' : undefined}
+              value={summary?.fpgaTemp != null ? `${summary.fpgaTemp} \u00b0C` : '\u2014'}
+              accentColor={summary?.fpgaTemp != null && summary.fpgaTemp > 70 ? '#ff0b55' : undefined}
+            />
+
+            <StatCard
+              icon={<ShieldCheck size={16} />}
+              label={t('license.activeConfiguration')}
+              value={String(summary?.activeConfiguration ?? '\u2014')}
+            />
+
+            <StatCard
+              icon={<Fingerprint size={16} />}
+              label={t('license.licenseRegister')}
+              value={String(summary?.licenseRegister ?? '\u2014')}
             />
 
             <StatCard
               icon={<Fingerprint size={16} />}
               label={t('license.fpgaId')}
-              value={String(data['fpga_id'] ?? '\u2014')}
-              sx={{ gridColumn: { xs: 'auto', md: 'span 2' } }}
+              value={String(summary?.fpgaId ?? '\u2014')}
+              sx={{ gridColumn: { xs: 'auto', md: 'span 3' } }}
             />
           </Box>
+
+          {summary?.licenseFeatures.length ? (
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 500, fontSize: '0.825rem', color: 'rgba(255,255,255,0.6)', mb: 1 }}>
+                {t('license.featureLicenses')}
+              </Typography>
+              <Stack spacing={1}>
+                {summary.licenseFeatures.map((feature) => (
+                  <Paper
+                    key={feature.name}
+                    elevation={0}
+                    sx={{
+                      p: 1.25,
+                      backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderRadius: 1.5
+                    }}
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{feature.name}</Typography>
+                      <Chip
+                        size="small"
+                        color={feature.status ? 'success' : 'default'}
+                        label={feature.status ? t('license.enabled') : t('license.disabled')}
+                      />
+                    </Stack>
+                    {feature.description && (
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.75, color: 'rgba(255,255,255,0.5)', lineHeight: 1.45 }}>
+                        {feature.description}
+                      </Typography>
+                    )}
+                  </Paper>
+                ))}
+              </Stack>
+            </Box>
+          ) : null}
 
           <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
 
@@ -289,4 +358,53 @@ export default function LicenseStatusPanel({ apiBase, active }: LicenseStatusPan
       )}
     </Stack>
   )
+}
+
+function getStatusValue(data: LicenseData, key: string): unknown {
+  return data[key] ?? (data.decoded as Record<string, unknown> | undefined)?.[key]
+}
+
+function getRawValue(data: LicenseData, key: string): unknown {
+  return (data.raw as Record<string, unknown> | undefined)?.[key]
+}
+
+function getBooleanStatusValue(data: LicenseData, key: string): boolean | undefined {
+  const value = getStatusValue(data, key)
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function getLicenseFeatures(data: LicenseData) {
+  const value = getStatusValue(data, 'license_features')
+  if (!Array.isArray(value)) return []
+  return value
+    .map((feature) => {
+      if (!feature || typeof feature !== 'object') return null
+      const entry = feature as Record<string, unknown>
+      const name = String(entry.name ?? '').trim()
+      if (!name) return null
+      return {
+        name,
+        status: Boolean(entry.status),
+        description: String(entry.description ?? '').trim()
+      }
+    })
+    .filter((feature): feature is { name: string; status: boolean; description: string } => Boolean(feature))
+}
+
+function formatLicenseSummary(t: ReturnType<typeof useTranslation>['t'], summary: LicenseSummary | null) {
+  if (!summary) return '\u2014'
+  if (summary.licenseFeatures.length > 0) {
+    const enabled = summary.licenseFeatures.filter((feature) => feature.status).length
+    return t('license.enabledFeatureCount', { defaultValue: '{{enabled}}/{{total}} Features aktiv', enabled, total: summary.licenseFeatures.length })
+  }
+  return summary.licensePresent ? t('license.licensePresent') : t('license.licenseAbsent')
 }
