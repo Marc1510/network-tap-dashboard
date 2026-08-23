@@ -1,7 +1,7 @@
 import { Box, Divider, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Paper, Tooltip, Collapse, Typography, Menu, MenuItem } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderOpen, Terminal, Settings, Play, CalendarClock, Activity, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileX, CheckCircle, Thermometer, MoreHorizontal } from 'lucide-react'
+import { Home, FolderOpen, Terminal, Settings, Play, CalendarClock, Activity, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, FileX, CheckCircle, Thermometer, MoreHorizontal, ShieldCheck } from 'lucide-react'
 import { useWindows } from './windows/WindowsContext'
 import { useTranslation } from 'react-i18next'
 
@@ -205,6 +205,7 @@ export default function Sidebar({ variant = 'permanent', onNavigate, onOpenSetti
     { label: t('nav.schedule'), to: '/schedule', icon: <CalendarClock size={18} /> },
     { label: t('nav.testConfig'), to: '/test-config', icon: <Settings size={18} /> },
     { label: t('nav.localTsnNetwork'), to: '/test-config/local-tsn-network', icon: <Settings size={18} /> },
+    { label: t('nav.tsnSecurity'), to: '/tsn-security', icon: <ShieldCheck size={18} /> },
   ]
   
   return (

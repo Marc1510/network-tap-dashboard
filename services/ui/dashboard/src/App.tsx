@@ -1,7 +1,7 @@
 import { AppBar, Box, CssBaseline, Toolbar, Typography, Container, Button, Menu, MenuItem, Divider, IconButton, Drawer } from '@mui/material'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
-import { Menu as MenuIcon, Home, Play, FolderOpen, CalendarClock, Settings } from 'lucide-react'
+import { Menu as MenuIcon, Home, Play, FolderOpen, CalendarClock, Settings, ShieldCheck } from 'lucide-react'
 import Sidebar from './components/Sidebar'
 import SettingsModal from './components/SettingsModal'
 import CapturesList from './components/CapturesList'
@@ -19,6 +19,7 @@ import LocalTsnNetworkPage from './components/LocalTsnNetworkPage'
 import TestStarter from './components/TestStarter'
 import Schedule from './components/Schedule'
 import QuickActionBar from './components/QuickActionBar'
+import TsnSecurityTestsPage from './components/TsnSecurityTestsPage'
 import type { CaptureSession, CaptureFile, CaptureDetail } from './types'
 import { useTranslation } from 'react-i18next'
 
@@ -76,6 +77,7 @@ function App() {
     if (p === '/schedule') return t('app.page.schedule')
     if (p === '/test-config/new') return t('app.page.testConfigNew')
     if (p === '/test-config/local-tsn-network') return t('app.page.localTsnNetwork')
+    if (p === '/tsn-security') return t('app.page.tsnSecurity')
     if (p.startsWith('/test-config/')) return t('app.page.testConfig')
     if (p === '/test-config') return t('app.page.testConfig')
     return t('app.title')
@@ -88,6 +90,7 @@ function App() {
     if (p === '/tests') return <Play size={18} />
     if (p === '/captures') return <FolderOpen size={18} />
     if (p === '/schedule') return <CalendarClock size={18} />
+    if (p === '/tsn-security') return <ShieldCheck size={18} />
     if (p === '/test-config' || p.startsWith('/test-config')) return <Settings size={18} />
     return <Home size={18} />
   }, [location.pathname])
@@ -283,6 +286,7 @@ function App() {
             <Route path="/test-config" element={<TestProfilesList apiBase={apiBase} />} />
             <Route path="/test-config/new" element={<TestProfileEditor apiBase={apiBase} />} />
             <Route path="/test-config/local-tsn-network" element={<LocalTsnNetworkPage />} />
+            <Route path="/tsn-security" element={<TsnSecurityTestsPage apiBase={apiBase} />} />
             <Route path="/test-config/:id" element={<TestProfileEditor apiBase={apiBase} />} />
           </Routes>
         </Container>

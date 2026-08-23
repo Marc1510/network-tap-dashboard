@@ -9,7 +9,8 @@
       "schedule": "Schedule",
       "testConfigNew": "New test configuration",
       "testConfig": "Test configuration",
-      "localTsnNetwork": "Local TSN network"
+      "localTsnNetwork": "Local TSN network",
+      "tsnSecurity": "TSN security tests"
     },
     "menu": {
       "open": "Open menu"
@@ -21,7 +22,8 @@
     "captures": "Captures",
     "schedule": "Schedule",
     "testConfig": "Test configuration",
-    "localTsnNetwork": "Local TSN network"
+    "localTsnNetwork": "Local TSN network",
+    "tsnSecurity": "TSN security tests"
   },
   "status": {
     "apiOk": "API reachable",

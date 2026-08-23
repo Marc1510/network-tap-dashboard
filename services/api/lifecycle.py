@@ -13,8 +13,11 @@ def create_startup_handler(schedule_manager, tests_manager):
 	return on_startup
 
 
-def create_shutdown_handler(schedule_manager, tests_manager):
+def create_shutdown_handler(schedule_manager, tests_manager, tsn_security_manager=None):
 	async def on_shutdown():
+		if tsn_security_manager is not None:
+			with contextlib.suppress(Exception):
+				tsn_security_manager.stop_active(reason="api_shutdown")
 		# Wake any websocket listeners so their queue.get() unblocks
 		with contextlib.suppress(Exception):
 			await tests_manager.notify_shutdown()

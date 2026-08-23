@@ -1,6 +1,6 @@
 ﻿from fastapi import FastAPI
 from services.api.config import API_TITLE, API_VERSION, TEST_RUNTIME_DIR
-from services.api.deps import tests_manager
+from services.api.deps import tests_manager, tsn_security_manager
 from services.api.middleware import setup_cors
 from services.api.routes import register_all_routers
 from services.api.profile_service import load_profile, utcnow_iso
@@ -21,4 +21,4 @@ schedule_manager = ScheduleManager(
 app.include_router(create_scheduling_router(schedule_manager))
 
 app.on_event("startup")(create_startup_handler(schedule_manager, tests_manager))
-app.on_event("shutdown")(create_shutdown_handler(schedule_manager, tests_manager))
+app.on_event("shutdown")(create_shutdown_handler(schedule_manager, tests_manager, tsn_security_manager))

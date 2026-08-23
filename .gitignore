@@ -71,4 +71,8 @@ schedules.json
 *.tmp
 *.bak
 
+# Locally built deployment bundles and review artefacts
+*.tar.gz
+/tmp/
+
 /evidence

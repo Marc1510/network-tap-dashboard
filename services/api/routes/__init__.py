@@ -6,6 +6,7 @@ from services.api.routes.captures import router as captures_router
 from services.api.routes.profiles import router as profiles_router
 from services.api.routes.ssh import router as ssh_router
 from services.api.routes.local_tsn_network import router as local_tsn_network_router
+from services.api.routes.tsn_security import router as tsn_security_router
 from services.api.routes.tabs import create_tabs_router
 
 
@@ -16,6 +17,7 @@ def register_all_routers(app: FastAPI, *, tests_manager, load_profile):
 	app.include_router(profiles_router)
 	app.include_router(ssh_router)
 	app.include_router(local_tsn_network_router)
+	app.include_router(tsn_security_router)
 	app.include_router(create_tabs_router(tests_manager, load_profile))
 
 
