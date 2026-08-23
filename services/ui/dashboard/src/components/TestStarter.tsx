@@ -40,6 +40,7 @@ import ConfirmDialog from './ConfirmDialog'
 import AffectedInterfaces from './AffectedInterfaces'
 import { formatUtc, toTime } from '../utils/dateUtils'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 const STATUS_LABEL_KEYS: Record<TestTabStatus, string> = {
   idle: 'testStarter.status.idle',
@@ -338,7 +339,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
       } catch (err) {
         if (cancelled) return
         setProfilesState((prev) => ({ ...prev, status: 'error' }))
-        setError(t('testStarter.errors.initialLoad'))
+        setError(getUserErrorMessage(err, 'testStarter.errors.initialLoad'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -678,7 +679,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     } catch (err) {
       // Entferne temporären Tab bei Fehler
       dispatch({ type: 'delete', tabId: tempId })
-      setError(t('testStarter.errors.createTab'))
+      setError(getUserErrorMessage(err, 'testStarter.errors.createTab'))
       // Setze aktiven Tab zurück auf den ersten verfügbaren Tab
       const remainingTabs = tabsStateRef.current.order.filter((id) => id !== tempId)
       const fallback = remainingTabs.find((id) => !isTemporaryTab(id)) ?? remainingTabs[0] ?? null
@@ -713,7 +714,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     try {
       await updateTestTab(apiBase, tab.id, { title: newTitle })
     } catch (err) {
-      setError(t('testStarter.errors.renameTab'))
+      setError(getUserErrorMessage(err, 'testStarter.errors.renameTab'))
       // Revert bei Fehler
       dispatch({ type: 'upsert', tab })
     } finally {
@@ -737,7 +738,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
     try {
       await updateTestTab(apiBase, tab.id, { profileId })
     } catch (err) {
-      setError(t('testStarter.errors.assignProfile'))
+      setError(getUserErrorMessage(err, 'testStarter.errors.assignProfile'))
       const revertTab: TestTab = {
         ...current,
         profileId: previousProfileId,
@@ -772,7 +773,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
         setActiveTab(nextTabId, { syncUrl })
       }
     } catch (err) {
-      setError(t('testStarter.errors.deleteTab'))
+      setError(getUserErrorMessage(err, 'testStarter.errors.deleteTab'))
     } finally {
       setTabPending(tab.id, false)
     }
@@ -797,7 +798,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
       // Nach Start kurzzeitig pollen, bis Status nicht mehr "starting" ist
       startPollingForStatus(tab.id, 'start')
     } catch (err) {
-      setError(t('testStarter.errors.startTest'))
+      setError(getUserErrorMessage(err, 'testStarter.errors.startTest'))
       // Revert bei Fehler
       dispatch({ type: 'upsert', tab: current })
     } finally {
@@ -859,7 +860,7 @@ export default function TestStarter({ apiBase }: TestStarterProps) {
       // Nach Stop pollen, bis Status nicht mehr running/starting ist
       startPollingForStatus(tab.id, 'stop')
     } catch (err) {
-      setError(t('testStarter.errors.stopTest'))
+      setError(getUserErrorMessage(err, 'testStarter.errors.stopTest'))
       // Revert bei Fehler
       dispatch({ type: 'upsert', tab: current })
     } finally {

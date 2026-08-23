@@ -136,15 +136,13 @@ export default function SettingsModal({ open, onClose, apiBase }: SettingsModalP
                 value={selectedLang}
                 onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'de')}
                 sx={{
+                  '--input-border-color': 'rgba(255, 255, 255, 0.08)',
                   backgroundColor: '#1f1f1f',
                   color: '#fff',
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: 'rgba(255, 255, 255, 0.08)'
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#ff0b55'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                     borderColor: '#ff0b55'
                   }
                 }}

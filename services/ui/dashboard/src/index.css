@@ -66,6 +66,24 @@ button:hover {
   box-shadow: none !important;
 }
 
+/* Formfelder behalten beim Aktivieren exakt denselben Rahmen wie im Ruhezustand. */
+input:focus,
+textarea:focus,
+select:focus,
+.MuiInputBase-root.Mui-focused {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.MuiOutlinedInput-root {
+  --input-border-color: rgba(255, 255, 255, 0.23);
+}
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--input-border-color) !important;
+  border-width: 1px !important;
+}
+
 /* Firefox: innerer Button-Fokusrand entfernen */
 ::-moz-focus-inner {
   border: 0;

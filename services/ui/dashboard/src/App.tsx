@@ -22,6 +22,7 @@ import QuickActionBar from './components/QuickActionBar'
 import TsnSecurityTestsPage from './components/TsnSecurityTestsPage'
 import type { CaptureSession, CaptureFile, CaptureDetail } from './types'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from './utils/errorMessages'
 
 // --- Re-export for backwards compatibility ---
 export type { CaptureSession, CaptureFile, CaptureDetail }
@@ -113,7 +114,7 @@ function App() {
       } catch (err: unknown) {
         if (!isMounted) return
         setApiStatus('down')
-        setLastError(err instanceof Error ? err.message : 'Unknown error')
+        setLastError(getUserErrorMessage(err))
       }
     }
     check()

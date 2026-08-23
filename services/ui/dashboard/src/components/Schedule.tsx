@@ -1,4 +1,4 @@
-import { Box, Paper, Stack, Typography, IconButton, Button, Tooltip, Divider, Menu, MenuItem, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material'
+import { Alert, Box, Paper, Stack, Typography, IconButton, Button, Tooltip, Divider, Menu, MenuItem, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus, MoreHorizontal, Pencil, Trash2, CheckCircle, XCircle, Clock, Play } from 'lucide-react'
 import type { TestProfile } from '../api/testProfiles'
@@ -9,6 +9,7 @@ import ScheduleDialog from './ScheduleDialog'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useServerTime } from '../hooks/useServerTime'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 type CalendarCell = {
   date: Date
@@ -85,6 +86,7 @@ export default function Schedule() {
   const [actionMenu, setActionMenu] = useState<{ el: HTMLElement | null; item: Sched | null }>({ el: null, item: null })
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; item: Sched | null }>({ open: false, item: null })
   const [now, setNow] = useState<Date>(new Date())
+  const [error, setError] = useState<string | null>(null)
 
   const cells = useMemo(() => getMonthMatrix(anchorDate), [anchorDate])
   const handlePrevMonth = () => setAnchorDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
@@ -99,15 +101,17 @@ export default function Schedule() {
       try {
         const [p, s] = await Promise.all([
           listTestProfiles(apiBase),
-          listSchedules(apiBase).catch(() => [] as Sched[]),
+          listSchedules(apiBase),
         ])
         if (cancelled) return
+        setError(null)
         setProfiles(p)
         setSchedules(s)
       } catch (e) {
         if (!cancelled) {
           setProfiles([])
           setSchedules([])
+          setError(getUserErrorMessage(e, 'schedule.errors.load'))
         }
       }
     })()
@@ -119,7 +123,7 @@ export default function Schedule() {
       const s = await listSchedules(apiBase)
       setSchedules(s)
     } catch (e) {
-      // ignore
+      setError(getUserErrorMessage(e, 'schedule.errors.refresh'))
     }
   }
 
@@ -232,8 +236,12 @@ export default function Schedule() {
 
   const confirmDelete = async () => {
     if (deleteConfirm.item) {
-      await deleteSchedule(apiBase, deleteConfirm.item.id)
-      await reloadSchedules()
+      try {
+        await deleteSchedule(apiBase, deleteConfirm.item.id)
+        await reloadSchedules()
+      } catch (deleteError) {
+        setError(getUserErrorMessage(deleteError, 'schedule.errors.delete'))
+      }
     }
     setDeleteConfirm({ open: false, item: null })
   }
@@ -268,6 +276,7 @@ export default function Schedule() {
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3 }}>
+      {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
       <Paper sx={{ p: 2, borderRadius: 2 }}>
         {/* Navigation und Controls */}
         <Box sx={{ mb: 3 }}>
@@ -556,7 +565,8 @@ export default function Schedule() {
                 await reloadSchedules()
                 closeActionMenu()
               } catch (e) {
-                console.error('Fehler beim Triggern:', e)
+                setError(getUserErrorMessage(e, 'schedule.errors.trigger'))
+                closeActionMenu()
               }
             } 
           }}

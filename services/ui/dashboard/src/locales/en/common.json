@@ -108,6 +108,120 @@
     "start": "Start",
     "stop": "Stop"
   },
+  "apiErrors": {
+    "http": {
+      "network": "The API cannot be reached. Check the network connection and configured API address, then try again.",
+      "cancelled": "The request was cancelled. No changes were applied.",
+      "badRequest": "The request contains invalid information. Check the inputs and try again.",
+      "unauthorized": "The session is no longer valid. Sign in again and repeat the action.",
+      "forbidden": "You do not have permission for this action. Use an authorized account or contact an administrator.",
+      "notFound": "The requested item was not found. It may already have been removed; refresh the view.",
+      "timeout": "The server did not respond in time. Check the connection and try again.",
+      "conflict": "The change conflicts with the current state. Refresh the view and try again.",
+      "payloadTooLarge": "The submitted data is too large. Reduce the selection or file size and try again.",
+      "validation": "One or more input values are invalid. Check the affected fields.",
+      "locked": "The item is currently in use and cannot be changed. Finish the running operation and try again.",
+      "tooManyRequests": "Too many requests were sent in a short time. Wait a moment and try again.",
+      "unavailable": "The service is temporarily unavailable. Check the API status and try again shortly.",
+      "server": "The server could not process the request. Try again. If the problem persists, check the server logs.",
+      "unexpected": "An unexpected error occurred. Refresh the view and try the action again.",
+      "withDetail": "{{message}} Server response: {{detail}}"
+    },
+    "validation": {
+      "summary": "Please correct the following inputs: {{details}}",
+      "required": "{{field}} is required.",
+      "invalid": "{{field}} is invalid.",
+      "choice": "The selected value for {{field}} is not allowed.",
+      "number": "{{field}} must be a number.",
+      "range": "{{field}} must be between {{min}} and {{max}}.",
+      "minimum": "{{field}} must be at least {{min}}.",
+      "maximum": "{{field}} must not exceed {{max}}.",
+      "minLength": "{{field}} must contain at least {{min}} characters.",
+      "maxLength": "{{field}} must not exceed {{max}} characters.",
+      "characters": "{{field}} contains unsupported characters.",
+      "format": "{{field}} must use the format {{format}}."
+    },
+    "fields": {
+      "input": "The input",
+      "name": "Name",
+      "description": "Description",
+      "role": "Role",
+      "ipAddress": "IP address",
+      "sshHost": "SSH host",
+      "sshPort": "SSH port",
+      "sshUsername": "SSH user",
+      "sshPassword": "SSH password",
+      "jumpHostDeviceId": "Jump host",
+      "primaryInterface": "Primary interface",
+      "secondaryInterface": "Secondary interface",
+      "bridgeInterface": "Bridge or VLAN interface",
+      "topologyOrder": "Topology order",
+      "nodeAddressSuffix": "VLAN address suffix",
+      "sourceDeviceId": "Source device",
+      "targetDeviceId": "Target device",
+      "trafficClass": "Traffic class",
+      "count": "Ping count",
+      "qosHex": "QoS value",
+      "profileId": "Test profile",
+      "title": "Title",
+      "mode": "Test mode",
+      "target": "Target system",
+      "interface": "Interface",
+      "scopeConfirmed": "Test scope confirmation",
+      "stages": "Load stages",
+      "repetitions": "Repetitions",
+      "ratePps": "Packet rate",
+      "durationSeconds": "Duration"
+    },
+    "details": {
+      "tsnNetworkNotFound": "The selected TSN network no longer exists. Refresh the network list and select an available network.",
+      "deviceNotFound": "The selected board was not found. Refresh the network and select an available board.",
+      "featureNotFound": "The requested TSN feature is not available on the server. Refresh the page and check the server version.",
+      "invalidJumpHost": "The selected jump host is not part of this network or no longer exists. Select a valid jump host.",
+      "switchMissing": "The network has no board with the Switch role. Assign that role before starting the TSN feature.",
+      "endpointMissing": "The network has no board with the Endpoint role. Assign that role before starting the TSN feature.",
+      "passwordSshUnavailable": "Password-based SSH login is not configured on the API server. Use an SSH key or install the required SSH support.",
+      "passwordJumpHostUnavailable": "Password-based jump hosts are not supported by the API server. Use an SSH key or a direct connection.",
+      "sshTimeout": "The target did not respond to the SSH command in time. Check the IP address, SSH service, credentials, and network path.",
+      "pingUnavailable": "No ping program is available on the API server. Install ping or check the server environment.",
+      "profileNotFound": "The test profile was not found. Refresh the profile list and select an available profile.",
+      "profileReadOnly": "Default profiles are read-only. Duplicate the profile and edit the copy instead.",
+      "profileExists": "This profile ID is already in use. Choose a unique name and save again.",
+      "scheduleNotFound": "The schedule entry no longer exists. Refresh the schedule.",
+      "scheduleInPast": "The next execution time is in the past. Choose a future date or adjust the recurrence.",
+      "scheduleRuleInvalid": "The recurrence rule is invalid. Select once, daily, or weekly.",
+      "userExists": "This SSH user already exists. Select the existing user or choose another name.",
+      "userNotFound": "The SSH user was not found. Refresh the user list.",
+      "tabNotFound": "The test tab no longer exists. Refresh the test view.",
+      "tabStillRunning": "The test is still running. Stop it first, then repeat the action.",
+      "metadataMissing": "No metadata was found for this capture. Check whether the test completed successfully.",
+      "baseFileMissing": "The capture base file is missing. Check the export directory on the server.",
+      "pcapMissing": "No PCAP files were found for this capture. Check whether the capture started successfully.",
+      "fileNotFound": "The requested file no longer exists. Refresh the file list.",
+      "filesMissing": "No files were selected. Select at least one file.",
+      "securityModeUnknown": "The selected security test mode is not supported by the server. Select an available test type.",
+      "securityScopeUnconfirmed": "The isolated lab scope has not been confirmed. Enable the confirmation before starting.",
+      "securityTargetOutsideScope": "The target is outside the approved lab scope. Use the target shown in the configuration.",
+      "securityInterfaceBlocked": "The selected interface is not approved for security tests. Select an interface from the provided list.",
+      "securityTestRunning": "A TSN security test is already running. Wait for it to finish or stop it first.",
+      "securityStageInvalid": "At least one load stage is invalid. Check the packet rate and duration.",
+      "securityStageNumbers": "Packet rate and duration must be whole numbers.",
+      "securityRepetitionsNumber": "The number of repetitions must be a whole number.",
+      "artifactNameInvalid": "The artifact name is invalid. Reload the artifact list and select an available entry.",
+      "artifactNotFound": "The requested artifact was not found. The test may not have finished yet.",
+      "runIdInvalid": "The test run ID is invalid. Open the test run again from the list.",
+      "runNotFound": "The test run was not found. Refresh the test run list.",
+      "deviceSshUserMissing": "{{device}} has no SSH user. Open the board and add the credentials.",
+      "jumpHostSshUserMissing": "Jump host {{device}} has no SSH user. Add credentials to the jump host.",
+      "targetSshUserMissing": "Target system {{device}} has no SSH user. Add credentials to the board.",
+      "vlanSuffixMissing": "{{device}} has no VLAN address suffix. Add the final part of the VLAN IP address to the board.",
+      "securityStageLimit": "This test mode allows no more than {{max}} load stages. Remove the extra stages.",
+      "securityStageValues": "The load stage exceeds the allowed maximum of {{rate}} packets/s or {{duration}} seconds. Reduce the values.",
+      "securityRepetitionRange": "The measurement series requires between {{min}} and {{max}} repetitions.",
+      "sessionNotFound": "Capture {{id}} was not found. Refresh the capture list.",
+      "namedFileNotFound": "File {{file}} was not found. Refresh the file list."
+    }
+  },
   "network": {
     "download": "Download",
     "statusDown": "OFF",
@@ -218,7 +332,14 @@
       "loadFailed": "Devices could not be loaded.",
       "saveFailed": "Device could not be saved.",
       "deleteFailed": "Device could not be deleted.",
-      "pingFailed": "Ping could not be executed."
+      "pingFailed": "Ping could not be executed.",
+      "loadState": "The TSN networks could not be loaded. Check the API connection and try again.",
+      "networkSave": "The TSN network could not be saved. Check the name and description.",
+      "deviceSave": "The board could not be saved. Check the address, role, ports, and SSH credentials.",
+      "featureAction": "The TSN feature could not be executed. Check the roles, interfaces, and SSH access of the involved boards.",
+      "refreshFailed": "The network status could not be refreshed. Check whether the boards are reachable.",
+      "devicePing": "The board ping could not be executed. Check the target address and network path.",
+      "diagnosticsPing": "The board-to-board test could not be executed. Check the source, target, and traffic class."
     },
     "icons": {
       "server": "Server",
@@ -231,7 +352,20 @@
       "activity": "Sensor"
     }
   },
+  "tsnSecurity": {
+    "errors": {
+      "statusLoad": "The security test status could not be loaded. Check the API connection.",
+      "start": "The security test could not be started. Check the test scope, target, interface, and load limits.",
+      "stop": "The running security test could not be stopped. Check the API status and stop the process on the server if necessary."
+    }
+  },
   "schedule": {
+    "errors": {
+      "load": "The schedule and test profiles could not be loaded. Check the API connection.",
+      "refresh": "The schedule could not be refreshed. The displayed data may be out of date.",
+      "delete": "The schedule entry could not be deleted. Refresh the schedule and try again.",
+      "trigger": "The scheduled test could not be started immediately. Check whether another test is running and whether the profile is available."
+    },
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "addTest": "Add test",
@@ -285,6 +419,9 @@
     "weekdaysHint": "Please select at least one weekday",
     "excludeDates": "Exclude dates (YYYY-MM-DD, comma separated)",
     "create": "Create",
+    "errors": {
+      "save": "The schedule entry could not be saved. Check the profile, date, time, and recurrence rule."
+    },
     "rule": {
       "once": "Once",
       "daily": "Daily",
@@ -359,7 +496,8 @@
       "updated": "Updated"
     },
     "errors": {
-      "load": "Failed to load profiles."
+      "load": "The test profiles could not be loaded. Check the API connection.",
+      "delete": "The test profile could not be deleted. Check whether it is still in use."
     },
     "actions": {
       "startWithProfile": "Start test with this profile",
@@ -371,7 +509,8 @@
     "titleEdit": "Edit Test Configuration",
     "errors": {
       "load": "Failed to load profile.",
-      "save": "Failed to save profile."
+      "save": "Failed to save profile.",
+      "interfaces": "The available network interfaces could not be loaded. Check the API connection."
     },
     "sections": {
       "general": "1. General",
@@ -518,6 +657,7 @@
       "deleteSelection": "Delete selection"
     },
     "errors": {
+      "loadFailed": "The captures could not be loaded. Check the API connection.",
       "downloadFailed": "Download failed.",
       "deleteFailed": "Deletion failed.",
       "partialDelete": "Some captures could not be deleted: {{ids}}",
@@ -549,7 +689,13 @@
     "fileCount": "{{count}} files",
     "noFiles": "No files found.",
     "downloadFile": "Download file",
-    "metadata": "Metadata / Analysis"
+    "metadata": "Metadata / Analysis",
+    "errors": {
+      "load": "The capture could not be loaded. Refresh the list and try again.",
+      "rename": "The test name could not be saved. Check the name and try again.",
+      "delete": "The capture could not be deleted. Check whether the test is still running.",
+      "download": "The selected files could not be downloaded. Refresh the file list."
+    }
   },
   "footer": {
     "settings": "Settings",

@@ -10,6 +10,7 @@ import { useSeenCaptures } from '../hooks/useSeenCaptures'
 import { listCaptureSessions, bulkDownloadCaptures, deleteCaptureSessions, stopCapture, getCaptureSession } from '../api/captures'
 import type { CaptureSession } from '../types'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 export type { CaptureSession }
 
@@ -52,7 +53,13 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         setAllSessions(null)
         const data = await listCaptureSessions(apiBase)
         if (!canceled) setAllSessions(data)
-      } catch {}
+      } catch (error) {
+        if (!canceled) {
+          setAllSessions([])
+          setErrorMessage(getUserErrorMessage(error, 'captures.errors.loadFailed'))
+          setErrorDialogOpen(true)
+        }
+      }
     })()
     return () => { canceled = true }
   }, [apiBase])
@@ -119,7 +126,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         fallbackFilename: 'captures_bulk.zip'
       })
     } catch (e) {
-      setErrorMessage(t('captures.errors.downloadFailed'))
+      setErrorMessage(getUserErrorMessage(e, 'captures.errors.downloadFailed'))
       setErrorDialogOpen(true)
     }
   }
@@ -142,7 +149,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         setErrorDialogOpen(true)
       }
     } catch (e) {
-      setErrorMessage(t('captures.errors.deleteFailed'))
+      setErrorMessage(getUserErrorMessage(e, 'captures.errors.deleteFailed'))
       setErrorDialogOpen(true)
     }
   }
@@ -196,7 +203,7 @@ export function CapturesList({ apiBase, onOpenDetail }: { apiBase: string; onOpe
         } catch {}
       })()
     } catch (e) {
-      setErrorMessage(t('captures.errors.stopDeleteFailed'))
+      setErrorMessage(getUserErrorMessage(e, 'captures.errors.stopDeleteFailed'))
       setErrorDialogOpen(true)
     } finally {
       setConfirmLoading(false)

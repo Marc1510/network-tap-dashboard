@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { ApiError } from '../api/client'
+import { buildHttpErrorMessage, getUserErrorMessage } from '../utils/errorMessages'
 
 /**
  * Custom hook for fetching data with standardized loading, error, and cancellation handling.
@@ -24,8 +26,22 @@ export function useFetch<T>(url: string | null, options?: RequestInit) {
     setError(null)
 
     fetch(url, options)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          let detail: string | null = null
+          try {
+            const payload = await res.json() as { detail?: unknown; message?: unknown }
+            if (typeof payload.detail === 'string') detail = payload.detail
+            else if (typeof payload.message === 'string') detail = payload.message
+          } catch {
+            // The localized status message remains available without a response body.
+          }
+          throw new ApiError(
+            res.status,
+            buildHttpErrorMessage({ status: res.status, detail }),
+            { detail },
+          )
+        }
         return res.json()
       })
       .then((data) => {
@@ -36,7 +52,7 @@ export function useFetch<T>(url: string | null, options?: RequestInit) {
       })
       .catch((err) => {
         if (!canceled) {
-          setError(err)
+          setError(new Error(getUserErrorMessage(err)))
           setLoading(false)
         }
       })

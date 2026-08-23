@@ -24,6 +24,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useServerTime } from '../hooks/useServerTime'
 import { padZero } from '../utils/formatUtils'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 export type ScheduleDialogMode = 'create' | 'edit'
 
@@ -54,6 +55,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
   const [skipIfRunning, setSkipIfRunning] = useState<boolean>(true)
   const [excludeDatesStr, setExcludeDatesStr] = useState<string>('')
   const [submitting, setSubmitting] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
   const selectedProfile = useMemo(() => profiles.find(p => p.id === profileId), [profiles, profileId])
   const selectedStopCondition = (selectedProfile?.settings as Record<string, unknown> | undefined)?.stopCondition as string | undefined
@@ -82,6 +84,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
   useEffect(() => {
     if (!open) {
       initializedTimeRef.current = false
+      setError(null)
       return
     }
     if (initializedTimeRef.current) return
@@ -195,6 +198,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
   const handleSubmit = async () => {
     if (!canSubmit) return
     setSubmitting(true)
+    setError(null)
     try {
       const payload: UpsertSchedule = {
         profileId,
@@ -231,6 +235,8 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
       }
       await onSubmit(payload, initial?.id)
       onClose()
+    } catch (submitError) {
+      setError(getUserErrorMessage(submitError, 'scheduleDialog.errors.save'))
     } finally {
       setSubmitting(false)
     }
@@ -245,6 +251,7 @@ export default function ScheduleDialog({ open, mode, date, profiles, initial, on
       <DialogTitle>{mode === 'create' ? t('scheduleDialog.titleCreate') : t('scheduleDialog.titleEdit')}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
+          {error && <Alert severity="error">{error}</Alert>}
           <TextField label={t('scheduleDialog.titleLabel')} value={title} onChange={e => setTitle(e.target.value)} fullWidth />
 
           <TextField select label={t('scheduleDialog.profileLabel')} value={profileId} onChange={e => setProfileId(e.target.value)} fullWidth>

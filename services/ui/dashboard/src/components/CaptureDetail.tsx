@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Box, Paper, Stack, Typography, Button, IconButton, Checkbox, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Chip } from '@mui/material'
+import { Alert, Box, Paper, Stack, Typography, Button, IconButton, Checkbox, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Chip } from '@mui/material'
 import { ArrowLeft, Download, Pencil, Trash2, MoreVertical, Info, File, Network, FileSpreadsheet } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import type { CaptureDetail, CaptureFile } from '../types'
@@ -10,6 +10,7 @@ import { useSeenCaptures } from '../hooks/useSeenCaptures'
 import { formatFileSize } from '../utils/formatUtils'
 import { getCaptureSession, updateCaptureSession, deleteCaptureSessions, downloadCapture } from '../api/captures'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 type CaptureDetailProps = {
   apiBase: string
@@ -28,6 +29,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+  const [error, setError] = useState<string | null>(null)
   const menuOpen = Boolean(menuAnchor)
 
   // Track which capture_ids user has opened (local persistence)
@@ -40,6 +42,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
         if (!captureId) return
         const data = await getCaptureSession(apiBase, captureId)
         if (!canceled) {
+          setError(null)
           setDetail(data)
           setTestName(data.test_name || '')
           // Mark as seen in localStorage for NEU badge logic on list view
@@ -48,7 +51,10 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
           }
         }
       } catch (e) {
-        if (!canceled) setDetail(null)
+        if (!canceled) {
+          setDetail(null)
+          setError(getUserErrorMessage(e, 'captureDetail.errors.load'))
+        }
       }
     })()
     return () => { canceled = true }
@@ -82,13 +88,14 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
     if (!captureId || !newName) return
     setIsSavingName(true)
     try {
+      setError(null)
       await updateCaptureSession(apiBase, captureId, { test_name: newName })
       if (detail && detail !== 'loading') {
         setDetail({ ...detail, test_name: newName })
       }
       setIsModalOpen(false)
     } catch (e) {
-      console.error('Fehler beim Speichern:', e)
+      setError(getUserErrorMessage(e, 'captureDetail.errors.rename'))
     } finally {
       setIsSavingName(false)
     }
@@ -98,11 +105,12 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
     if (!captureId) return
     setIsDeleting(true)
     try {
+      setError(null)
       await deleteCaptureSessions(apiBase, [captureId])
       // Navigate zur Captures-Seite
       navigate({ pathname: '/captures', search: location.search || '' })
     } catch (e) {
-      console.error('Fehler beim Löschen:', e)
+      setError(getUserErrorMessage(e, 'captureDetail.errors.delete'))
     } finally {
       setIsDeleting(false)
       setIsDeleteModalOpen(false)
@@ -118,13 +126,14 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
       return
     }
     try {
+      setError(null)
       const blob = await downloadCapture(apiBase, captureId, { files: selectedNames })
       const shortId = captureId.split('-')[0] || captureId.substring(0, 8)
       downloadBlob(blob, {
         fallbackFilename: `capture_${shortId}_selection.zip`
       })
     } catch (e) {
-      // optional: Fehlerbehandlung/UI
+      setError(getUserErrorMessage(e, 'captureDetail.errors.download'))
     }
   }
 
@@ -171,6 +180,7 @@ export default function CaptureDetail({ apiBase }: CaptureDetailProps) {
       />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3 }}>
+        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
         <Paper sx={{ p: 2, borderRadius: 2 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>

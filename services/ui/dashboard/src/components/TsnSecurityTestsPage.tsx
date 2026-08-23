@@ -5,8 +5,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography,
 } from '@mui/material'
 import { OctagonX, Play, RefreshCw, ShieldCheck } from 'lucide-react'
-import { ApiError } from '../api/client'
 import { securityApi, type LoadStage, type SecurityConfig, type SecurityMode, type SecurityRun } from '../api/tsnSecurity'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 
 const initialStages: LoadStage[] = [
@@ -52,7 +52,7 @@ export default function TsnSecurityTestsPage({ apiBase }: { apiBase: string }) {
       setRuns(nextRuns)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Status konnte nicht geladen werden.')
+      setError(getUserErrorMessage(err, 'tsnSecurity.errors.statusLoad'))
     }
   }, [api])
 
@@ -89,7 +89,7 @@ export default function TsnSecurityTestsPage({ apiBase }: { apiBase: string }) {
       setMessage('Testlauf wurde gestartet.')
       await reload()
     } catch (err) {
-      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Start fehlgeschlagen.')
+      setError(getUserErrorMessage(err, 'tsnSecurity.errors.start'))
     } finally {
       setBusy(false)
     }
@@ -103,7 +103,7 @@ export default function TsnSecurityTestsPage({ apiBase }: { apiBase: string }) {
       setMessage(result.message)
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Not-Stopp fehlgeschlagen.')
+      setError(getUserErrorMessage(err, 'tsnSecurity.errors.stop'))
     } finally {
       setBusy(false)
     }

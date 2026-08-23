@@ -108,6 +108,120 @@
     "start": "Start",
     "stop": "Stop"
   },
+  "apiErrors": {
+    "http": {
+      "network": "Die API ist nicht erreichbar. Prüfe die Netzwerkverbindung und die konfigurierte API-Adresse und versuche es erneut.",
+      "cancelled": "Die Anfrage wurde abgebrochen. Es wurden keine Änderungen übernommen.",
+      "badRequest": "Die Anfrage enthält ungültige Angaben. Prüfe die Eingaben und versuche es erneut.",
+      "unauthorized": "Die Sitzung ist nicht mehr gültig. Melde dich erneut an und wiederhole die Aktion.",
+      "forbidden": "Für diese Aktion fehlt die Berechtigung. Verwende ein freigegebenes Konto oder wende dich an die Administration.",
+      "notFound": "Der angeforderte Eintrag wurde nicht gefunden. Möglicherweise wurde er bereits entfernt; aktualisiere die Ansicht.",
+      "timeout": "Der Server hat nicht rechtzeitig geantwortet. Prüfe die Verbindung und versuche es erneut.",
+      "conflict": "Die Änderung kollidiert mit dem aktuellen Zustand. Aktualisiere die Ansicht und versuche es erneut.",
+      "payloadTooLarge": "Die übermittelten Daten sind zu groß. Reduziere die Auswahl oder Dateigröße und versuche es erneut.",
+      "validation": "Ein oder mehrere Eingabewerte sind ungültig. Prüfe die betroffenen Felder.",
+      "locked": "Der Eintrag wird gerade verwendet und kann momentan nicht geändert werden. Beende den laufenden Vorgang und versuche es erneut.",
+      "tooManyRequests": "Es wurden zu viele Anfragen in kurzer Zeit gesendet. Warte einen Moment und versuche es erneut.",
+      "unavailable": "Der Dienst ist vorübergehend nicht verfügbar. Prüfe den API-Status und versuche es in Kürze erneut.",
+      "server": "Der Server konnte die Anfrage nicht verarbeiten. Versuche es erneut. Bleibt der Fehler bestehen, prüfe die Serverprotokolle.",
+      "unexpected": "Ein unerwarteter Fehler ist aufgetreten. Aktualisiere die Ansicht und versuche die Aktion erneut.",
+      "withDetail": "{{message}} Rückmeldung des Servers: {{detail}}"
+    },
+    "validation": {
+      "summary": "Bitte korrigiere folgende Eingaben: {{details}}",
+      "required": "{{field}} fehlt.",
+      "invalid": "{{field}} ist ungültig.",
+      "choice": "Für {{field}} wurde keine zulässige Auswahl getroffen.",
+      "number": "{{field}} muss eine Zahl sein.",
+      "range": "{{field}} muss zwischen {{min}} und {{max}} liegen.",
+      "minimum": "{{field}} muss mindestens {{min}} betragen.",
+      "maximum": "{{field}} darf höchstens {{max}} betragen.",
+      "minLength": "{{field}} muss mindestens {{min}} Zeichen enthalten.",
+      "maxLength": "{{field}} darf höchstens {{max}} Zeichen enthalten.",
+      "characters": "{{field}} enthält nicht erlaubte Zeichen.",
+      "format": "{{field}} muss im Format {{format}} eingegeben werden."
+    },
+    "fields": {
+      "input": "Die Eingabe",
+      "name": "Name",
+      "description": "Beschreibung",
+      "role": "Rolle",
+      "ipAddress": "IP-Adresse",
+      "sshHost": "SSH-Host",
+      "sshPort": "SSH-Port",
+      "sshUsername": "SSH-Nutzer",
+      "sshPassword": "SSH-Passwort",
+      "jumpHostDeviceId": "Jump Host",
+      "primaryInterface": "Primäres Interface",
+      "secondaryInterface": "Sekundäres Interface",
+      "bridgeInterface": "Bridge- oder VLAN-Interface",
+      "topologyOrder": "Topologie-Reihenfolge",
+      "nodeAddressSuffix": "VLAN-Adresssuffix",
+      "sourceDeviceId": "Quellgerät",
+      "targetDeviceId": "Zielgerät",
+      "trafficClass": "Traffic-Klasse",
+      "count": "Ping-Anzahl",
+      "qosHex": "QoS-Wert",
+      "profileId": "Testprofil",
+      "title": "Titel",
+      "mode": "Testmodus",
+      "target": "Zielsystem",
+      "interface": "Interface",
+      "scopeConfirmed": "Bestätigung des Testumfangs",
+      "stages": "Laststufen",
+      "repetitions": "Wiederholungen",
+      "ratePps": "Paketrate",
+      "durationSeconds": "Dauer"
+    },
+    "details": {
+      "tsnNetworkNotFound": "Das ausgewählte TSN-Netz existiert nicht mehr. Aktualisiere die Netzwerkliste und wähle ein vorhandenes Netz aus.",
+      "deviceNotFound": "Das ausgewählte Board wurde nicht gefunden. Aktualisiere das Netz und wähle ein vorhandenes Board aus.",
+      "featureNotFound": "Die angeforderte TSN-Funktion ist auf dem Server nicht verfügbar. Aktualisiere die Seite und prüfe die Serverversion.",
+      "invalidJumpHost": "Der gewählte Jump Host gehört nicht zu diesem Netz oder ist nicht mehr vorhanden. Wähle einen gültigen Jump Host aus.",
+      "switchMissing": "Im Netz fehlt ein Board mit der Rolle „Switch“. Weise diese Rolle zu, bevor du die TSN-Funktion startest.",
+      "endpointMissing": "Im Netz fehlt ein Board mit der Rolle „Endpoint“. Weise diese Rolle zu, bevor du die TSN-Funktion startest.",
+      "passwordSshUnavailable": "Passwortbasierte SSH-Anmeldung ist auf dem API-Server nicht eingerichtet. Verwende einen SSH-Schlüssel oder installiere die erforderliche SSH-Unterstützung.",
+      "passwordJumpHostUnavailable": "Passwortbasierte Jump Hosts werden vom API-Server nicht unterstützt. Verwende einen SSH-Schlüssel oder einen direkten Zugang.",
+      "sshTimeout": "Das Zielsystem hat nicht rechtzeitig auf den SSH-Befehl geantwortet. Prüfe IP-Adresse, SSH-Dienst, Zugangsdaten und Netzwerkpfad.",
+      "pingUnavailable": "Auf dem API-Server ist kein Ping-Programm verfügbar. Installiere Ping oder prüfe die Serverumgebung.",
+      "profileNotFound": "Das Testprofil wurde nicht gefunden. Aktualisiere die Profilliste und wähle ein vorhandenes Profil aus.",
+      "profileReadOnly": "Standardprofile sind schreibgeschützt. Dupliziere das Profil und bearbeite anschließend die Kopie.",
+      "profileExists": "Diese Profil-ID wird bereits verwendet. Vergib einen eindeutigen Namen und speichere erneut.",
+      "scheduleNotFound": "Der Zeitplaneintrag existiert nicht mehr. Aktualisiere den Zeitplan.",
+      "scheduleInPast": "Der nächste Ausführungszeitpunkt liegt in der Vergangenheit. Wähle ein zukünftiges Datum oder passe die Wiederholung an.",
+      "scheduleRuleInvalid": "Die Wiederholungsregel ist ungültig. Wähle einmalig, täglich oder wöchentlich.",
+      "userExists": "Dieser SSH-Nutzer existiert bereits. Wähle den vorhandenen Nutzer oder vergib einen anderen Namen.",
+      "userNotFound": "Der SSH-Nutzer wurde nicht gefunden. Aktualisiere die Nutzerliste.",
+      "tabNotFound": "Der Test-Tab existiert nicht mehr. Aktualisiere die Testansicht.",
+      "tabStillRunning": "Der Test läuft noch. Stoppe ihn zuerst und wiederhole anschließend die Aktion.",
+      "metadataMissing": "Für diese Aufzeichnung wurden keine Metadaten gefunden. Prüfe, ob der Test vollständig abgeschlossen wurde.",
+      "baseFileMissing": "Die Basisdatei der Aufzeichnung fehlt. Prüfe den Exportordner auf dem Server.",
+      "pcapMissing": "Für diese Aufzeichnung wurden keine PCAP-Dateien gefunden. Prüfe, ob die Aufzeichnung erfolgreich gestartet wurde.",
+      "fileNotFound": "Die angeforderte Datei existiert nicht mehr. Aktualisiere die Dateiliste.",
+      "filesMissing": "Es wurden keine Dateien ausgewählt. Wähle mindestens eine Datei aus.",
+      "securityModeUnknown": "Der gewählte Security-Testmodus wird vom Server nicht unterstützt. Wähle einen verfügbaren Testtyp.",
+      "securityScopeUnconfirmed": "Der isolierte Labor-Testumfang wurde nicht bestätigt. Aktiviere die Bestätigung vor dem Start.",
+      "securityTargetOutsideScope": "Das Ziel liegt außerhalb des freigegebenen Laborbereichs. Verwende das in der Konfiguration angezeigte Ziel.",
+      "securityInterfaceBlocked": "Das gewählte Interface ist für Security-Tests nicht freigegeben. Wähle ein Interface aus der angebotenen Liste.",
+      "securityTestRunning": "Es läuft bereits ein TSN-Security-Test. Warte auf dessen Ende oder stoppe ihn zuerst.",
+      "securityStageInvalid": "Mindestens eine Laststufe ist ungültig. Prüfe Paketrate und Dauer.",
+      "securityStageNumbers": "Paketrate und Dauer müssen ganze Zahlen sein.",
+      "securityRepetitionsNumber": "Die Anzahl der Wiederholungen muss eine ganze Zahl sein.",
+      "artifactNameInvalid": "Der Artefaktname ist ungültig. Lade die Artefaktliste neu und wähle einen vorhandenen Eintrag.",
+      "artifactNotFound": "Das angeforderte Artefakt wurde nicht gefunden. Möglicherweise ist der Test noch nicht abgeschlossen.",
+      "runIdInvalid": "Die Testlauf-Kennung ist ungültig. Öffne den Testlauf erneut aus der Liste.",
+      "runNotFound": "Der Testlauf wurde nicht gefunden. Aktualisiere die Testlaufliste.",
+      "deviceSshUserMissing": "Für {{device}} fehlt der SSH-Nutzer. Öffne das Board und ergänze die Zugangsdaten.",
+      "jumpHostSshUserMissing": "Für den Jump Host {{device}} fehlt der SSH-Nutzer. Ergänze die Zugangsdaten des Jump Hosts.",
+      "targetSshUserMissing": "Für das Zielsystem {{device}} fehlt der SSH-Nutzer. Ergänze die Zugangsdaten des Boards.",
+      "vlanSuffixMissing": "Für {{device}} fehlt das VLAN-Adresssuffix. Ergänze im Board die letzte Stelle der VLAN-IP-Adresse.",
+      "securityStageLimit": "Für diesen Testmodus sind höchstens {{max}} Laststufen erlaubt. Entferne überzählige Stufen.",
+      "securityStageValues": "Die Laststufe überschreitet das erlaubte Maximum von {{rate}} Paketen/s oder {{duration}} Sekunden. Reduziere die Werte.",
+      "securityRepetitionRange": "Die Messserie benötigt zwischen {{min}} und {{max}} Wiederholungen.",
+      "sessionNotFound": "Die Aufzeichnung {{id}} wurde nicht gefunden. Aktualisiere die Liste der Aufzeichnungen.",
+      "namedFileNotFound": "Die Datei {{file}} wurde nicht gefunden. Aktualisiere die Dateiliste."
+    }
+  },
   "network": {
     "download": "Download",
     "statusDown": "AUS",
@@ -218,7 +332,14 @@
       "loadFailed": "Geraete konnten nicht geladen werden.",
       "saveFailed": "Geraet konnte nicht gespeichert werden.",
       "deleteFailed": "Geraet konnte nicht geloescht werden.",
-      "pingFailed": "Ping konnte nicht ausgefuehrt werden."
+      "pingFailed": "Ping konnte nicht ausgefuehrt werden.",
+      "loadState": "Die TSN-Netze konnten nicht geladen werden. Prüfe die API-Verbindung und versuche es erneut.",
+      "networkSave": "Das TSN-Netz konnte nicht gespeichert werden. Prüfe Name und Beschreibung.",
+      "deviceSave": "Das Board konnte nicht gespeichert werden. Prüfe Adresse, Rolle, Ports und SSH-Daten.",
+      "featureAction": "Die TSN-Funktion konnte nicht ausgeführt werden. Prüfe Rollen, Interfaces und SSH-Zugang der beteiligten Boards.",
+      "refreshFailed": "Der Netzwerkstatus konnte nicht aktualisiert werden. Prüfe die Erreichbarkeit der Boards.",
+      "devicePing": "Der Board-Ping konnte nicht ausgeführt werden. Prüfe Zieladresse und Netzwerkpfad.",
+      "diagnosticsPing": "Der Board-zu-Board-Test konnte nicht ausgeführt werden. Prüfe Quelle, Ziel und Traffic-Klasse."
     },
     "icons": {
       "server": "Server",
@@ -231,7 +352,20 @@
       "activity": "Sensor"
     }
   },
+  "tsnSecurity": {
+    "errors": {
+      "statusLoad": "Der Status der Security-Tests konnte nicht geladen werden. Prüfe die API-Verbindung.",
+      "start": "Der Security-Test konnte nicht gestartet werden. Prüfe Testumfang, Ziel, Interface und Lastgrenzen.",
+      "stop": "Der laufende Security-Test konnte nicht gestoppt werden. Prüfe den API-Status und stoppe den Prozess gegebenenfalls auf dem Server."
+    }
+  },
   "schedule": {
+    "errors": {
+      "load": "Zeitplan und Testprofile konnten nicht geladen werden. Prüfe die API-Verbindung.",
+      "refresh": "Der Zeitplan konnte nicht aktualisiert werden. Die angezeigten Daten können veraltet sein.",
+      "delete": "Der Zeitplaneintrag konnte nicht gelöscht werden. Aktualisiere den Zeitplan und versuche es erneut.",
+      "trigger": "Der geplante Test konnte nicht sofort gestartet werden. Prüfe, ob bereits ein Test läuft und ob das Profil verfügbar ist."
+    },
     "prevMonth": "Vorheriger Monat",
     "nextMonth": "Nächster Monat",
     "addTest": "Test hinzufügen",
@@ -285,6 +419,9 @@
     "weekdaysHint": "Bitte wähle mindestens einen Wochentag aus",
     "excludeDates": "Ausgeschlossene Daten (JJJJ-MM-TT, kommagetrennt)",
     "create": "Anlegen",
+    "errors": {
+      "save": "Der Zeitplaneintrag konnte nicht gespeichert werden. Prüfe Profil, Datum, Uhrzeit und Wiederholungsregel."
+    },
     "rule": {
       "once": "Einmalig",
       "daily": "Täglich",
@@ -359,7 +496,8 @@
       "updated": "Aktualisiert"
     },
     "errors": {
-      "load": "Fehler beim Laden der Profile."
+      "load": "Die Testprofile konnten nicht geladen werden. Prüfe die API-Verbindung.",
+      "delete": "Das Testprofil konnte nicht gelöscht werden. Prüfe, ob es noch verwendet wird."
     },
     "actions": {
       "startWithProfile": "Test mit diesem Profil starten",
@@ -371,7 +509,8 @@
     "titleEdit": "Testkonfiguration bearbeiten",
     "errors": {
       "load": "Fehler beim Laden des Profils.",
-      "save": "Fehler beim Speichern des Profils."
+      "save": "Fehler beim Speichern des Profils.",
+      "interfaces": "Die verfügbaren Netzwerk-Interfaces konnten nicht geladen werden. Prüfe die API-Verbindung."
     },
     "sections": {
       "general": "1. Allgemein",
@@ -519,6 +658,7 @@
       "deleteSelection": "Auswahl löschen"
     },
     "errors": {
+      "loadFailed": "Die Aufzeichnungen konnten nicht geladen werden. Prüfe die API-Verbindung.",
       "downloadFailed": "Download fehlgeschlagen.",
       "deleteFailed": "Löschen fehlgeschlagen.",
       "partialDelete": "Einige Aufzeichnungen konnten nicht gelöscht werden: {{ids}}",
@@ -550,7 +690,13 @@
     "fileCount": "{{count}} Dateien",
     "noFiles": "Keine Dateien gefunden.",
     "downloadFile": "Datei herunterladen",
-    "metadata": "Metadaten / Analyse"
+    "metadata": "Metadaten / Analyse",
+    "errors": {
+      "load": "Die Aufzeichnung konnte nicht geladen werden. Aktualisiere die Liste und versuche es erneut.",
+      "rename": "Der Testname konnte nicht gespeichert werden. Prüfe den Namen und versuche es erneut.",
+      "delete": "Die Aufzeichnung konnte nicht gelöscht werden. Prüfe, ob der Test noch läuft.",
+      "download": "Die ausgewählten Dateien konnten nicht heruntergeladen werden. Aktualisiere die Dateiliste."
+    }
   },
   "footer": {
     "settings": "Einstellungen",

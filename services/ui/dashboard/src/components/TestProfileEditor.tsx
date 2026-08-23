@@ -12,6 +12,7 @@ import { deepEqual } from '../utils/comparison'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 type TestProfileEditorProps = { apiBase: string }
 
@@ -62,6 +63,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
         setAvailableInterfaces(captureInterfaces)
       } catch (e) {
         console.error('Failed to load interfaces:', e)
+        if (!cancelled) setError(getUserErrorMessage(e, 'profileEditor.errors.interfaces'))
       }
     })()
     return () => { cancelled = true }
@@ -84,7 +86,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
         } catch (e) {
           if (cancelled) return
           setInitial(null)
-          setError(t('profileEditor.errors.load'))
+          setError(getUserErrorMessage(e, 'profileEditor.errors.load'))
         }
       })()
     }
@@ -147,7 +149,7 @@ export default function TestProfileEditor({ apiBase }: TestProfileEditorProps) {
         setTimeout(() => setSaveSuccess(false), 3000)
       }
     } catch (e) {
-      setError(t('profileEditor.errors.save'))
+      setError(getUserErrorMessage(e, 'profileEditor.errors.save'))
     } finally {
       setSaving(false)
     }

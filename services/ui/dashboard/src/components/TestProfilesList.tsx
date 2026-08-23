@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Box, Paper, Stack, Typography, Button, IconButton, Chip, Tooltip, Skeleton } from '@mui/material'
+import { useCallback, useEffect, useState } from 'react'
+import { Alert, Box, Paper, Stack, Typography, Button, IconButton, Chip, Tooltip, Skeleton } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Play, Settings } from 'lucide-react'
 import type { TestProfile } from '../api/testProfiles'
@@ -8,6 +8,7 @@ import ConfirmDialog from './ConfirmDialog'
 import EmptyState from './EmptyState'
 import { formatUtc } from '../utils/dateUtils'
 import { useTranslation } from 'react-i18next'
+import { getUserErrorMessage } from '../utils/errorMessages'
 
 type TestProfilesListProps = { apiBase: string }
 
@@ -18,19 +19,22 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [profileToDelete, setProfileToDelete] = useState<TestProfile | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setProfiles('loading')
+      setErrorMessage(null)
       const data = await listTestProfiles(apiBase)
       setProfiles(data)
-    } catch {
+    } catch (error) {
       setProfiles('error')
+      setErrorMessage(getUserErrorMessage(error, 'profiles.errors.load'))
     }
-  }
+  }, [apiBase])
 
 
-  useEffect(() => { load() }, [apiBase])
+  useEffect(() => { load() }, [load])
 
   const handleDelete = (p: TestProfile) => {
     if (p.isDefault) return
@@ -44,6 +48,8 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
       setBusyId(profileToDelete.id)
       await deleteTestProfile(apiBase, profileToDelete.id)
       await load()
+    } catch (error) {
+      setErrorMessage(getUserErrorMessage(error, 'profiles.errors.delete'))
     } finally {
       setBusyId(null)
       setDeleteConfirmOpen(false)
@@ -54,6 +60,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr' }, gap: 3 }}>
       <Paper sx={{ p: 2, borderRadius: 2 }}>
+        {errorMessage && profiles !== 'error' && <Alert severity="error" onClose={() => setErrorMessage(null)} sx={{ mb: 2 }}>{errorMessage}</Alert>}
         {/* Toolbar */}
         <Paper
           variant="outlined"
@@ -118,7 +125,7 @@ export default function TestProfilesList({ apiBase }: TestProfilesListProps) {
         {/* Error State */}
         {profiles === 'error' && (
           <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="error.main">{t('profiles.errors.load')}</Typography>
+            <Typography variant="body2" color="error.main">{errorMessage || t('profiles.errors.load')}</Typography>
           </Box>
         )}
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Alert,
   Box,
@@ -15,16 +15,18 @@ import {
   Stack,
   TextField,
   Typography,
-  type ChipProps,
 } from '@mui/material'
 import {
   Activity,
   ArrowRightLeft,
   Cable,
   CheckCircle2,
+  ChevronDown,
   CircleAlert,
   Cpu,
   GitBranch,
+  Gauge,
+  Layers3,
   Monitor,
   Network,
   Pencil,
@@ -36,7 +38,6 @@ import {
   Save,
   Server,
   Shield,
-  Sparkles,
   Terminal,
   Trash2,
   Waves,
@@ -45,9 +46,12 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import './LocalTsnNetworkPage.css'
+
 import ConfirmDialog from './ConfirmDialog'
 import { useWindows } from './windows/WindowsContext'
 import { formatUtc } from '../utils/dateUtils'
+import { getUserErrorMessage } from '../utils/errorMessages'
 import {
   activateLocalTsnFeature,
   createLocalTsnDevice,
@@ -160,24 +164,6 @@ const EMPTY_DIAGNOSTICS_FORM: DiagnosticsFormState = {
   qosHex: '',
 }
 
-const STATUS_COLOR: Record<string, ChipProps['color']> = {
-  success: 'success',
-  failed: 'error',
-  partial: 'warning',
-  running: 'info',
-  inactive: 'default',
-  unknown: 'default',
-}
-
-const ROLE_COLORS: Record<TsnDeviceRole, ChipProps['color']> = {
-  controller: 'info',
-  switch: 'success',
-  bridge: 'warning',
-  endpoint: 'primary',
-  observer: 'secondary',
-  generic: 'default',
-}
-
 const DEVICE_ICONS = {
   server: Server,
   monitor: Monitor,
@@ -220,7 +206,7 @@ const ROLE_DEFAULTS: Record<TsnDeviceRole, Partial<DeviceFormState>> = {
 }
 
 export default function LocalTsnNetworkPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { openSshWindow } = useWindows()
   const apiBase = useMemo(() => (import.meta.env.VITE_API_BASE ? String(import.meta.env.VITE_API_BASE) : ''), [])
 
@@ -297,7 +283,17 @@ export default function LocalTsnNetworkPage() {
     [sortedDevices, t],
   )
 
-  const loadState = async (preferredNetworkId?: string) => {
+  const readyCheckCount = useMemo(
+    () => networkReadinessChecks.filter((check) => check.ready).length,
+    [networkReadinessChecks],
+  )
+
+  const reachableDeviceCount = useMemo(
+    () => sortedDevices.filter((device) => device.reachability.status === 'success').length,
+    [sortedDevices],
+  )
+
+  const loadState = useCallback(async (preferredNetworkId?: string) => {
     try {
       const state = await getLocalTsnState(apiBase)
       setFeatureCatalog(Array.isArray(state.featureCatalog) ? state.featureCatalog : [])
@@ -312,23 +308,23 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.loadState', { defaultValue: 'TSN-Netze konnten nicht geladen werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.loadState'),
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [apiBase])
 
   useEffect(() => {
     loadState()
-  }, [apiBase])
+  }, [loadState, i18n.language])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       loadState(selectedNetworkId || undefined)
     }, 20000)
     return () => window.clearInterval(intervalId)
-  }, [apiBase, selectedNetworkId])
+  }, [loadState, selectedNetworkId])
 
   useEffect(() => {
     if (!selectedNetwork) {
@@ -426,7 +422,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.networkSave', { defaultValue: 'TSN-Netz konnte nicht gespeichert werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.networkSave'),
       })
     } finally {
       setNetworkSaving(false)
@@ -527,7 +523,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.deviceSave', { defaultValue: 'Geraet konnte nicht gespeichert werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.deviceSave'),
       })
     } finally {
       setDeviceSaving(false)
@@ -564,7 +560,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.deleteFailed', { defaultValue: 'Objekt konnte nicht geloescht werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.deleteFailed'),
       })
     } finally {
       setDeleteDialog(null)
@@ -609,7 +605,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.featureAction', { defaultValue: 'TSN-Feature konnte nicht ausgefuehrt werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.featureAction'),
       })
     } finally {
       setActiveFeatureOperation(null)
@@ -630,7 +626,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.refreshFailed', { defaultValue: 'Status konnte nicht aktualisiert werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.refreshFailed'),
       })
     } finally {
       setNetworkRefreshing(false)
@@ -650,7 +646,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.devicePing', { defaultValue: 'Ping konnte nicht ausgefuehrt werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.devicePing'),
       })
     } finally {
       setDevicePingBusyId(null)
@@ -679,7 +675,7 @@ export default function LocalTsnNetworkPage() {
     } catch (error) {
       setNotice({
         severity: 'error',
-        message: error instanceof Error ? error.message : t('localTsnNetwork.errors.diagnosticsPing', { defaultValue: 'Board-zu-Board-Ping konnte nicht ausgefuehrt werden.' }),
+        message: getUserErrorMessage(error, 'localTsnNetwork.errors.diagnosticsPing'),
       })
     } finally {
       setDiagnosticsBusy(false)
@@ -708,76 +704,58 @@ export default function LocalTsnNetworkPage() {
   }
 
   return (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      <Paper
-        sx={{
-          p: { xs: 2.5, md: 3.5 },
-          borderRadius: 4,
-          color: '#f8fafc',
-          border: '1px solid rgba(148,163,184,0.18)',
-          background:
-            'radial-gradient(circle at top right, rgba(148, 163, 184, 0.1), transparent 34%), linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.96))',
-          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.2)',
-        }}
-      >
-        <Stack spacing={2.5}>
-          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5} justifyContent="space-between">
-            <Stack spacing={1.25} sx={{ maxWidth: 860 }}>
-              <Chip
-                size="small"
-                icon={<Sparkles size={14} />}
-                label={t('localTsnNetwork.hero.badge', { defaultValue: 'TSN Control Center' })}
-                sx={{
-                  alignSelf: 'flex-start',
-                  color: 'rgba(226,232,240,0.92)',
-                  borderColor: 'rgba(148,163,184,0.26)',
-                  backgroundColor: 'rgba(148,163,184,0.08)',
-                }}
-                variant="outlined"
-              />
-              <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em' }}>
-                {t('localTsnNetwork.hero.title', { defaultValue: 'Lokale TSN-Netze aufbauen, schalten und pruefen' })}
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(226,232,240,0.82)', maxWidth: 920, lineHeight: 1.7 }}>
-                {t('localTsnNetwork.hero.subtitle', {
-                  defaultValue:
-                    'Lege mehrere TSN-Netze an, gliedere Boards sauber nach Rolle und schalte gPTP, 802.1Qbv, Frame Preemption und Timestamping mit klaren Einzelaktionen nacheinander frei.',
-                })}
-              </Typography>
-            </Stack>
+    <Box className="local-tsn-page">
+      <Paper className="tsn-hero" elevation={0}>
+        <Box className="tsn-hero__glow" aria-hidden="true" />
+        <Box className="tsn-hero__copy">
+          <Box className="tsn-eyebrow">
+            <Box className="tsn-live-dot" aria-hidden="true" />
+            <Typography component="span">
+              {t('localTsnNetwork.hero.badge', { defaultValue: 'TSN Network Composer' })}
+            </Typography>
+          </Box>
+          <Typography component="h1" className="tsn-hero__title">
+            {t('localTsnNetwork.hero.title', { defaultValue: 'Lokales TSN-Netzwerk' })}
+          </Typography>
+          <Typography className="tsn-hero__subtitle">
+            {t('localTsnNetwork.hero.subtitle', {
+              defaultValue:
+                'Boards verbinden, Rollen zuweisen und TSN-Funktionen kontrolliert aktivieren – von der Topologie bis zum Live-Check in einem Arbeitsbereich.',
+            })}
+          </Typography>
+        </Box>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ minWidth: { lg: 360 } }}>
-              <MetricTile
-                icon={<Network size={18} />}
-                value={String(networks.length)}
-                label={t('localTsnNetwork.hero.metrics.networks', { defaultValue: 'TSN-Netze' })}
-              />
-              <MetricTile
-                icon={<Waypoints size={18} />}
-                value={String(totalDeviceCount)}
-                label={t('localTsnNetwork.hero.metrics.devices', { defaultValue: 'Boards im aktiven Netz' })}
-              />
-              <MetricTile
-                icon={<CheckCircle2 size={18} />}
-                value={`${activeFeatureCount}/4`}
-                label={t('localTsnNetwork.hero.metrics.features', { defaultValue: 'aktive TSN-Funktionen' })}
-              />
-            </Stack>
-          </Stack>
-
-          {notice && <Alert severity={notice.severity}>{notice.message}</Alert>}
-        </Stack>
+        <Box className="tsn-hero__metrics" aria-label={t('localTsnNetwork.hero.metrics.label', { defaultValue: 'Netzwerkübersicht' })}>
+          <MetricTile
+            icon={<Layers3 size={17} />}
+            value={String(networks.length).padStart(2, '0')}
+            label={t('localTsnNetwork.hero.metrics.networks', { defaultValue: 'Netze' })}
+          />
+          <MetricTile
+            icon={<Waypoints size={17} />}
+            value={String(totalDeviceCount).padStart(2, '0')}
+            label={t('localTsnNetwork.hero.metrics.devices', { defaultValue: 'Boards' })}
+          />
+          <MetricTile
+            icon={<Gauge size={17} />}
+            value={`${activeFeatureCount}/4`}
+            label={t('localTsnNetwork.hero.metrics.features', { defaultValue: 'TSN aktiv' })}
+          />
+        </Box>
       </Paper>
 
-      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', xl: '360px minmax(0, 1fr)' } }}>
-        <Stack spacing={3}>
+      {notice && <Alert className="tsn-notice" severity={notice.severity} onClose={() => setNotice(null)}>{notice.message}</Alert>}
+
+      <Box className="tsn-workspace">
+        <Stack className="tsn-network-rail" spacing={2}>
           <SurfaceCard
+            className="tsn-network-composer"
             icon={<GitBranch size={18} />}
             title={editingNetworkId
               ? t('localTsnNetwork.networks.editTitle', { defaultValue: 'TSN-Netz bearbeiten' })
               : t('localTsnNetwork.networks.createTitle', { defaultValue: 'Neues TSN-Netz' })}
           >
-            <Stack spacing={1.5}>
+            <Stack spacing={1.5} className="tsn-form-stack">
               <TextField
                 size="small"
                 label={t('localTsnNetwork.fields.networkName', { defaultValue: 'Netzname' })}
@@ -796,6 +774,7 @@ export default function LocalTsnNetworkPage() {
               />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                 <Button
+                  className="tsn-primary-action"
                   variant="contained"
                   startIcon={editingNetworkId ? <Save size={16} /> : <PlusCircle size={16} />}
                   onClick={handleSubmitNetwork}
@@ -809,6 +788,7 @@ export default function LocalTsnNetworkPage() {
                     : t('localTsnNetwork.actions.createNetwork', { defaultValue: 'Netz anlegen' })}
                 </Button>
                 <Button
+                  className="tsn-secondary-action"
                   variant="outlined"
                   startIcon={<RotateCcw size={16} />}
                   onClick={resetNetworkForm}
@@ -824,6 +804,7 @@ export default function LocalTsnNetworkPage() {
           </SurfaceCard>
 
           <SurfaceCard
+            className="tsn-network-list"
             icon={<Network size={18} />}
             title={t('localTsnNetwork.networks.listTitle', {
               defaultValue: 'Vorhandene Netze ({{count}})',
@@ -843,21 +824,18 @@ export default function LocalTsnNetworkPage() {
                   const selected = network.id === selectedNetworkId
                   return (
                     <Paper
+                      className={`tsn-network-item${selected ? ' tsn-network-item--selected' : ''}`}
                       key={network.id}
                       variant="outlined"
-                      sx={{
-                        p: 1.75,
-                        borderRadius: 3,
-                        borderColor: selected ? 'rgba(148,163,184,0.34)' : 'rgba(148,163,184,0.14)',
-                        backgroundColor: selected ? 'rgba(30, 41, 59, 0.72)' : 'rgba(255,255,255,0.03)',
-                        cursor: 'pointer',
-                        transition: '200ms ease',
-                        '&:hover': {
-                          transform: 'translateY(-1px)',
-                          borderColor: 'rgba(148,163,184,0.28)',
-                        },
-                      }}
                       onClick={() => handleSelectNetwork(network)}
+                      tabIndex={0}
+                      role="button"
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          handleSelectNetwork(network)
+                        }
+                      }}
                     >
                       <Stack spacing={1.25}>
                         <Stack direction="row" justifyContent="space-between" spacing={1.5}>
@@ -867,20 +845,21 @@ export default function LocalTsnNetworkPage() {
                               {network.description || t('localTsnNetwork.networks.noDescription', { defaultValue: 'Noch keine Beschreibung' })}
                             </Typography>
                           </Box>
-                          <StatusChip label={`${activeCount}/4 ${t('localTsnNetwork.labels.featuresShort', { defaultValue: 'Features' })}`} status={activeCount > 0 ? 'success' : 'inactive'} />
+                          <StatusChip label={`${activeCount}/4`} status={activeCount > 0 ? 'success' : 'inactive'} compact />
                         </Stack>
 
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                          <Chip size="small" label={`${network.devices.length} ${t('localTsnNetwork.labels.devices', { defaultValue: 'Boards' })}`} />
-                          <Chip size="small" label={`${t('localTsnNetwork.labels.updated', { defaultValue: 'Aktualisiert' })}: ${formatUtc(network.updatedUtc)}`} />
-                        </Stack>
+                        <Box className="tsn-network-item__meta">
+                          <span>{`${network.devices.length} ${t('localTsnNetwork.labels.devices', { defaultValue: 'Boards' })}`}</span>
+                          <span>{formatUtc(network.updatedUtc)}</span>
+                        </Box>
 
                         <Stack direction="row" spacing={1}>
-                          <Button size="small" variant="outlined" startIcon={<Pencil size={14} />} onClick={(event) => { event.stopPropagation(); handleEditNetwork(network) }}>
+                          <Button className="tsn-mini-action" size="small" variant="outlined" startIcon={<Pencil size={14} />} onClick={(event) => { event.stopPropagation(); handleEditNetwork(network) }}>
                             {t('common.edit')}
                           </Button>
                           <Button
                             size="small"
+                            className="tsn-mini-action tsn-mini-action--danger"
                             variant="outlined"
                             color="error"
                             startIcon={<Trash2 size={14} />}
@@ -914,12 +893,14 @@ export default function LocalTsnNetworkPage() {
             </Alert>
           </SurfaceCard>
         ) : (
-          <Stack spacing={3}>
+          <Stack className="tsn-main-column" spacing={2}>
             <SurfaceCard
+              className="tsn-overview"
               icon={<Workflow size={18} />}
               title={selectedNetwork.name}
               action={
                 <Button
+                  className="tsn-secondary-action"
                   size="small"
                   variant="outlined"
                   startIcon={networkRefreshing ? <CircularProgress size={14} color="inherit" /> : <RefreshCcw size={14} />}
@@ -931,63 +912,65 @@ export default function LocalTsnNetworkPage() {
               }
             >
               <Stack spacing={2}>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                  {selectedNetwork.description || t('localTsnNetwork.networks.noDescriptionLong', { defaultValue: 'Hier kannst du die Topologie, die Rollen der Boards und die aktivierten TSN-Funktionen zentral verwalten.' })}
-                </Typography>
+                <Box className="tsn-overview__intro">
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedNetwork.description || t('localTsnNetwork.networks.noDescriptionLong', { defaultValue: 'Topologie, Board-Rollen und TSN-Funktionen dieses Netzes zentral verwalten.' })}
+                  </Typography>
+                  <Typography variant="caption" className="tsn-overview__updated">
+                    {`${t('localTsnNetwork.labels.lastChange', { defaultValue: 'Stand' })} · ${formatUtc(selectedNetwork.updatedUtc)}`}
+                  </Typography>
+                </Box>
 
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} flexWrap="wrap" useFlexGap>
-                  <Chip icon={<Waypoints size={14} />} label={`${selectedNetwork.devices.length} ${t('localTsnNetwork.labels.nodes', { defaultValue: 'Nodes' })}`} />
-                  <Chip icon={<CheckCircle2 size={14} />} label={`${activeFeatureCount}/4 ${t('localTsnNetwork.labels.featuresActive', { defaultValue: 'TSN-Features aktiv' })}`} />
-                  <Chip icon={<Activity size={14} />} label={`${t('localTsnNetwork.labels.lastChange', { defaultValue: 'Letzte Aenderung' })}: ${formatUtc(selectedNetwork.updatedUtc)}`} />
-                </Stack>
+                <Box className="tsn-status-summary">
+                  <OverviewStat
+                    label={t('localTsnNetwork.readiness.shortTitle', { defaultValue: 'Setup bereit' })}
+                    value={`${readyCheckCount}/${networkReadinessChecks.length}`}
+                    status={readyCheckCount === networkReadinessChecks.length ? 'success' : 'warning'}
+                  />
+                  <OverviewStat
+                    label={t('localTsnNetwork.labels.reachableDevices', { defaultValue: 'Erreichbar' })}
+                    value={`${reachableDeviceCount}/${totalDeviceCount}`}
+                    status={reachableDeviceCount === totalDeviceCount && totalDeviceCount > 0 ? 'success' : 'neutral'}
+                  />
+                  <OverviewStat
+                    label={t('localTsnNetwork.labels.featuresActive', { defaultValue: 'TSN aktiv' })}
+                    value={`${activeFeatureCount}/4`}
+                    status={activeFeatureCount > 0 ? 'success' : 'neutral'}
+                  />
+                </Box>
 
-                <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.15fr) minmax(320px, 0.85fr)' } }}>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 3,
-                      borderColor: 'rgba(148,163,184,0.16)',
-                      backgroundColor: 'rgba(255,255,255,0.02)',
-                    }}
-                  >
+                <Box className="tsn-overview__grid">
+                  <Paper variant="outlined" className="tsn-inset-panel">
                     <Stack spacing={1}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      <Typography component="h3" variant="subtitle2" className="tsn-inset-panel__title">
                         {t('localTsnNetwork.readiness.title', { defaultValue: 'Setup-Check vor TSN-Aktionen' })}
                       </Typography>
                       {networkReadinessChecks.map((check) => (
-                        <Stack
-                          key={check.label}
-                          direction={{ xs: 'column', sm: 'row' }}
-                          spacing={0.9}
-                          alignItems={{ xs: 'flex-start', sm: 'center' }}
-                        >
-                          <Chip size="small" color={check.ready ? 'success' : 'warning'} label={check.label} />
-                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                        <Box key={check.label} className={`tsn-check-row${check.ready ? ' tsn-check-row--ready' : ''}`}>
+                          <Box className="tsn-check-row__mark">
+                            {check.ready ? <CheckCircle2 size={15} /> : <CircleAlert size={15} />}
+                          </Box>
+                          <Box>
+                            <Typography className="tsn-check-row__label">{check.label}</Typography>
+                            <Typography variant="body2" color="text.secondary">
                             {check.detail}
-                          </Typography>
-                        </Stack>
+                            </Typography>
+                          </Box>
+                        </Box>
                       ))}
                     </Stack>
                   </Paper>
 
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 3,
-                      borderColor: 'rgba(148,163,184,0.16)',
-                      backgroundColor: 'rgba(255,255,255,0.02)',
-                    }}
-                  >
+                  <Paper variant="outlined" className="tsn-inset-panel tsn-runbook">
                     <Stack spacing={1}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      <Typography component="h3" variant="subtitle2" className="tsn-inset-panel__title">
                         {t('localTsnNetwork.runbook.title', { defaultValue: 'Empfohlener Ablauf' })}
                       </Typography>
-                      {featureRunbookPreview(t).map((step) => (
-                        <Typography key={step} variant="body2" color="text.secondary" sx={{ lineHeight: 1.65 }}>
-                          {step}
-                        </Typography>
+                      {featureRunbookPreview(t).map((step, index) => (
+                        <Box key={step} className="tsn-runbook__step">
+                          <span>{String(index + 1).padStart(2, '0')}</span>
+                          <Typography variant="body2" color="text.secondary">{step.replace(/^\d+\.\s*/, '')}</Typography>
+                        </Box>
                       ))}
                     </Stack>
                   </Paper>
@@ -997,6 +980,7 @@ export default function LocalTsnNetworkPage() {
 
             {activeFeatureOperation && (
               <SurfaceCard
+                className="tsn-operation"
                 icon={<Activity size={18} />}
                 title={t('localTsnNetwork.progress.title', { defaultValue: 'Aktion laeuft' })}
               >
@@ -1039,40 +1023,56 @@ export default function LocalTsnNetworkPage() {
             )}
 
             <SurfaceCard
+              className="tsn-topology"
               icon={<Cable size={18} />}
               title={t('localTsnNetwork.topology.title', { defaultValue: 'Topologie und Rollen' })}
             >
-              <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 1 }}>
-                {sortedDevices.map((device, index) => (
-                  <Stack key={device.id} direction="row" spacing={1.5} alignItems="center">
-                    <DeviceTopologyCard
-                      device={device}
-                      roleLabel={roleLabel(t, device.role)}
-                      onPing={() => handlePingDevice(device)}
-                      onEdit={() => handleEditDevice(device)}
-                      onSsh={() => openDeviceSsh(device)}
-                      onDelete={() => setDeleteDialog({ kind: 'device', networkId: selectedNetwork.id, deviceId: device.id, name: device.name })}
-                      pingBusy={devicePingBusyId === device.id}
-                      jumpHostName={device.jumpHostDeviceId ? selectedNetwork.devices.find((candidate) => candidate.id === device.jumpHostDeviceId)?.name : undefined}
-                      t={t}
-                    />
-                    {index < sortedDevices.length - 1 && (
-                      <MoveConnector label={t('localTsnNetwork.topology.link', { defaultValue: 'verbindet' })} />
-                    )}
-                  </Stack>
-                ))}
-              </Stack>
+              {sortedDevices.length === 0 ? (
+                <Box className="tsn-empty-topology">
+                  <Box className="tsn-empty-topology__icon"><Waypoints size={24} /></Box>
+                  <Box>
+                    <Typography className="tsn-empty-topology__title">
+                      {t('localTsnNetwork.topology.emptyTitle', { defaultValue: 'Noch keine Boards verbunden' })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('localTsnNetwork.topology.emptyBody', { defaultValue: 'Füge unten das erste Board hinzu. Die Topologie entsteht automatisch aus der gewählten Reihenfolge.' })}
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : (
+                <Stack className="tsn-topology__track" direction="row" spacing={0}>
+                  {sortedDevices.map((device, index) => (
+                    <Stack key={device.id} direction="row" spacing={0} alignItems="center">
+                      <DeviceTopologyCard
+                        device={device}
+                        roleLabel={roleLabel(t, device.role)}
+                        onPing={() => handlePingDevice(device)}
+                        onEdit={() => handleEditDevice(device)}
+                        onSsh={() => openDeviceSsh(device)}
+                        onDelete={() => setDeleteDialog({ kind: 'device', networkId: selectedNetwork.id, deviceId: device.id, name: device.name })}
+                        pingBusy={devicePingBusyId === device.id}
+                        jumpHostName={device.jumpHostDeviceId ? selectedNetwork.devices.find((candidate) => candidate.id === device.jumpHostDeviceId)?.name : undefined}
+                        t={t}
+                      />
+                      {index < sortedDevices.length - 1 && (
+                        <MoveConnector label={t('localTsnNetwork.topology.link', { defaultValue: 'Link' })} />
+                      )}
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
             </SurfaceCard>
 
-            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', xl: '420px minmax(0, 1fr)' } }}>
+            <Box className="tsn-config-grid">
               <SurfaceCard
+                className="tsn-device-editor"
                 icon={<Waypoints size={18} />}
                 title={editingDeviceId
                   ? t('localTsnNetwork.devices.editTitle', { defaultValue: 'Board bearbeiten' })
                   : t('localTsnNetwork.devices.createTitle', { defaultValue: 'Board zum Netz hinzufuegen' })}
               >
                 <Stack spacing={1.5}>
-                  <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+                  <Box className="tsn-field-grid">
                     <TextField
                       size="small"
                       label={t('localTsnNetwork.fields.deviceName', { defaultValue: 'Name' })}
@@ -1117,7 +1117,21 @@ export default function LocalTsnNetworkPage() {
                       onChange={(event) => setDeviceForm((current) => ({ ...current, sshHost: event.target.value }))}
                       fullWidth
                     />
+                  </Box>
 
+                  <Box component="details" className="tsn-advanced-config" open={editingDeviceId ? true : undefined}>
+                    <Box component="summary" className="tsn-advanced-config__summary">
+                      <Box>
+                        <Typography className="tsn-advanced-config__title">
+                          {t('localTsnNetwork.devices.advancedTitle', { defaultValue: 'Verbindung & Interface-Details' })}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {t('localTsnNetwork.devices.advancedHint', { defaultValue: 'SSH, Jump Host, Ports, VLAN und Darstellung konfigurieren' })}
+                        </Typography>
+                      </Box>
+                      <ChevronDown size={18} aria-hidden="true" />
+                    </Box>
+                    <Box className="tsn-field-grid tsn-advanced-config__fields">
                     <TextField
                       size="small"
                       label={t('localTsnNetwork.fields.sshUsername', { defaultValue: 'SSH Nutzer' })}
@@ -1221,6 +1235,7 @@ export default function LocalTsnNetworkPage() {
                       </Select>
                     </FormControl>
                   </Box>
+                  </Box>
 
                   <TextField
                     size="small"
@@ -1234,6 +1249,7 @@ export default function LocalTsnNetworkPage() {
 
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                     <Button
+                      className="tsn-primary-action"
                       variant="contained"
                       startIcon={editingDeviceId ? <Save size={16} /> : <PlusCircle size={16} />}
                       onClick={handleSubmitDevice}
@@ -1246,7 +1262,7 @@ export default function LocalTsnNetworkPage() {
                         ? t('localTsnNetwork.actions.updateDevice', { defaultValue: 'Board speichern' })
                         : t('localTsnNetwork.actions.createDevice', { defaultValue: 'Board hinzufuegen' })}
                     </Button>
-                    <Button variant="outlined" startIcon={<RotateCcw size={16} />} onClick={resetDeviceForm} disabled={deviceSaving} fullWidth>
+                    <Button className="tsn-secondary-action" variant="outlined" startIcon={<RotateCcw size={16} />} onClick={resetDeviceForm} disabled={deviceSaving} fullWidth>
                       {editingDeviceId
                         ? t('localTsnNetwork.actions.cancelDeviceEdit', { defaultValue: 'Bearbeiten beenden' })
                         : t('localTsnNetwork.actions.clearDeviceForm', { defaultValue: 'Felder leeren' })}
@@ -1256,11 +1272,12 @@ export default function LocalTsnNetworkPage() {
               </SurfaceCard>
 
               <SurfaceCard
+                className="tsn-features"
                 icon={<Waves size={18} />}
                 title={t('localTsnNetwork.features.title', { defaultValue: 'TSN-Funktionen mit Einzelaktionen' })}
               >
                 <Stack spacing={1.5}>
-                  <Alert severity="info">
+                  <Alert className="tsn-context-note" severity="info">
                     {t('localTsnNetwork.features.scope', {
                       defaultValue:
                         'Bezug: Die Anzeigen in diesem Panel gelten nur fuer das aktuell ausgewaehlte Netz "{{network}}". Pro TSN-Funktion wird das Ergebnis der letzten Aktion (Aktivieren oder Pruefen) gezeigt.',
@@ -1269,16 +1286,11 @@ export default function LocalTsnNetworkPage() {
                   </Alert>
 
                   <Paper
+                    className="tsn-role-coverage"
                     variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 3,
-                      borderColor: 'rgba(148,163,184,0.14)',
-                      backgroundColor: 'rgba(255,255,255,0.02)',
-                    }}
                   >
                     <Stack spacing={1.25}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      <Typography component="h3" variant="subtitle2" sx={{ fontWeight: 700 }}>
                         {t('localTsnNetwork.features.roleCoverageTitle', {
                           defaultValue: 'Rollenabdeckung fuer TSN-Funktionen',
                         })}
@@ -1324,20 +1336,15 @@ export default function LocalTsnNetworkPage() {
                     const featureReady = requirementsMet && readinessIssues.length === 0
                     return (
                       <Paper
+                        className={`tsn-feature-card tsn-feature-card--${state?.status || 'inactive'}`}
                         key={feature.id}
                         variant="outlined"
-                        sx={{
-                          p: 2,
-                          borderRadius: 3,
-                          borderColor: 'rgba(148,163,184,0.14)',
-                          backgroundColor: 'rgba(255,255,255,0.03)',
-                        }}
                       >
                         <Stack spacing={1.25}>
                           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} justifyContent="space-between">
                             <Stack spacing={0.75}>
                               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                                <Typography sx={{ fontWeight: 700 }}>{feature.name}</Typography>
+                                <Typography component="h3" sx={{ m: 0, fontSize: '0.9rem', fontWeight: 700 }}>{feature.name}</Typography>
                                 <StatusChip status={state?.status || 'inactive'} label={featureStatusLabel(t, state)} />
                               </Stack>
                               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
@@ -1358,6 +1365,7 @@ export default function LocalTsnNetworkPage() {
                             </Stack>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                               <Button
+                                className="tsn-primary-action"
                                 size="small"
                                 variant="contained"
                                 startIcon={featureBusyKey === `${feature.id}:activate` ? <CircularProgress size={14} color="inherit" /> : <PlugZap size={14} />}
@@ -1367,6 +1375,7 @@ export default function LocalTsnNetworkPage() {
                                 {t('localTsnNetwork.actions.activateFeature', { defaultValue: 'Aktivieren' })}
                               </Button>
                               <Button
+                                className="tsn-secondary-action"
                                 size="small"
                                 variant="outlined"
                                 startIcon={featureBusyKey === `${feature.id}:verify` ? <CircularProgress size={14} color="inherit" /> : <RefreshCcw size={14} />}
@@ -1433,8 +1442,9 @@ export default function LocalTsnNetworkPage() {
               </SurfaceCard>
             </Box>
 
-            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', xl: '440px minmax(0, 1fr)' } }}>
+            <Box className="tsn-bottom-grid">
               <SurfaceCard
+                className="tsn-diagnostics"
                 icon={<ArrowRightLeft size={18} />}
                 title={t('localTsnNetwork.diagnostics.title', { defaultValue: 'Board-zu-Board Ping und Traffic-Test' })}
               >
@@ -1503,6 +1513,7 @@ export default function LocalTsnNetworkPage() {
                   />
 
                   <Button
+                    className="tsn-primary-action"
                     variant="contained"
                     startIcon={diagnosticsBusy ? <CircularProgress size={14} color="inherit" /> : <ArrowRightLeft size={16} />}
                     onClick={handleRunDiagnostics}
@@ -1520,6 +1531,7 @@ export default function LocalTsnNetworkPage() {
               </SurfaceCard>
 
               <SurfaceCard
+                className="tsn-activity"
                 icon={<Activity size={18} />}
                 title={t('localTsnNetwork.activity.title', { defaultValue: 'Aktivitaetslog und Rueckmeldungen' })}
               >
@@ -1531,14 +1543,9 @@ export default function LocalTsnNetworkPage() {
                   <Stack spacing={1.25}>
                     {selectedNetwork.activity.slice(0, 8).map((item) => (
                       <Paper
+                        className="tsn-activity-item"
                         key={item.id}
                         variant="outlined"
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 3,
-                          borderColor: 'rgba(148,163,184,0.14)',
-                          backgroundColor: 'rgba(255,255,255,0.025)',
-                        }}
                       >
                         <Stack spacing={0.75}>
                           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
@@ -1607,40 +1614,23 @@ function SurfaceCard({
   icon,
   action,
   children,
+  className = '',
 }: {
   title: string
   icon: ReactNode
   action?: ReactNode
   children: ReactNode
+  className?: string
 }) {
   return (
-    <Paper
-      sx={{
-        p: 2.5,
-        borderRadius: 4,
-        border: '1px solid rgba(148,163,184,0.14)',
-        backgroundColor: 'rgba(15,23,42,0.72)',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.16)',
-      }}
-    >
+    <Paper className={`tsn-surface ${className}`.trim()} elevation={0}>
       <Stack spacing={2}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.5}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 2,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#cbd5e1',
-                backgroundColor: 'rgba(148,163,184,0.12)',
-              }}
-            >
+        <Stack className="tsn-surface__header" direction="row" alignItems="center" justifyContent="space-between" spacing={1.5}>
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+            <Box className="tsn-surface__icon" aria-hidden="true">
               {icon}
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Typography component="h2" variant="h6" className="tsn-surface__title">
               {title}
             </Typography>
           </Stack>
@@ -1654,29 +1644,33 @@ function SurfaceCard({
 
 function MetricTile({ icon, value, label }: { icon: ReactNode; value: string; label: string }) {
   return (
-    <Paper
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        p: 1.5,
-        borderRadius: 3,
-        backgroundColor: 'rgba(15,23,42,0.6)',
-        border: '1px solid rgba(148,163,184,0.14)',
-        color: '#f8fafc',
-      }}
-    >
-      <Stack spacing={0.75}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'rgba(226,232,240,0.88)' }}>
-          {icon}
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {label}
-          </Typography>
-        </Stack>
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>
-          {value}
-        </Typography>
-      </Stack>
-    </Paper>
+    <Box className="tsn-metric">
+      <Box className="tsn-metric__icon" aria-hidden="true">{icon}</Box>
+      <Box>
+        <Typography className="tsn-metric__value">{value}</Typography>
+        <Typography className="tsn-metric__label">{label}</Typography>
+      </Box>
+    </Box>
+  )
+}
+
+function OverviewStat({
+  label,
+  value,
+  status,
+}: {
+  label: string
+  value: string
+  status: 'success' | 'warning' | 'neutral'
+}) {
+  return (
+    <Box className={`tsn-overview-stat tsn-overview-stat--${status}`}>
+      <Box className="tsn-overview-stat__dot" aria-hidden="true" />
+      <Box>
+        <Typography className="tsn-overview-stat__value">{value}</Typography>
+        <Typography className="tsn-overview-stat__label">{label}</Typography>
+      </Box>
+    </Box>
   )
 }
 
@@ -1709,62 +1703,41 @@ function DeviceTopologyCard({
 
   return (
     <Paper
+      className={`tsn-device-card tsn-device-card--${device.reachability.status}`}
       variant="outlined"
-      sx={{
-        minWidth: 250,
-        maxWidth: 280,
-        p: 1.75,
-        borderRadius: 3,
-        borderColor: 'rgba(148,163,184,0.14)',
-        backgroundColor: 'rgba(15,23,42,0.44)',
-      }}
     >
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} alignItems="center">
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#e2e8f0',
-              backgroundColor: 'rgba(148,163,184,0.12)',
-            }}
-          >
-            <Icon size={18} />
+          <Box className="tsn-device-card__icon" aria-hidden="true">
+            <Icon size={19} />
+            <Box className="tsn-device-card__reachability" aria-hidden="true" />
           </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontWeight: 700 }}>{device.name}</Typography>
-            <Typography variant="body2" color="text.secondary" noWrap>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography className="tsn-device-card__name">{device.name}</Typography>
+            <Typography variant="body2" className="tsn-device-card__ip" noWrap>
               {device.ipAddress}
             </Typography>
           </Box>
+          <StatusChip status={device.reachability.status} label={device.reachability.status === 'success' ? 'online' : device.reachability.status === 'failed' ? 'offline' : '–'} compact />
         </Stack>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip size="small" color={ROLE_COLORS[device.role]} label={roleLabel} />
-          <Chip size="small" label={`${activeCount}/4 ${t('localTsnNetwork.labels.featuresShort', { defaultValue: 'Features' })}`} />
-        </Stack>
+        <Box className="tsn-device-card__role-row">
+          <span className={`tsn-role-pill tsn-role-pill--${device.role}`}>{roleLabel}</span>
+          <span className="tsn-device-card__feature-count">{`${activeCount}/4 ${t('localTsnNetwork.labels.featuresShort', { defaultValue: 'Features' })}`}</span>
+        </Box>
 
         <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
           {device.description || `${t('localTsnNetwork.labels.interface', { defaultValue: 'Interface' })}: ${device.primaryInterface}`}
         </Typography>
 
-        <Stack spacing={0.35}>
-          <Typography variant="caption" color="text.secondary">
-            {`${t('localTsnNetwork.labels.interface', { defaultValue: 'Interface' })}: ${interfaceSummary}`}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {`SSH: ${sshSummary}`}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {jumpHostName
-              ? `${t('localTsnNetwork.fields.jumpHost', { defaultValue: 'Jump Host' })}: ${jumpHostName}`
-              : t('localTsnNetwork.deviceDetails.directAccess', { defaultValue: 'Direkter SSH-Zugriff ohne Jump Host.' })}
-          </Typography>
-        </Stack>
+        <Box className="tsn-device-card__meta-grid">
+          <span>{t('localTsnNetwork.labels.interface', { defaultValue: 'Interface' })}</span>
+          <code>{interfaceSummary}</code>
+          <span>SSH</span>
+          <code>{sshSummary}</code>
+          <span>{t('localTsnNetwork.fields.jumpHost', { defaultValue: 'Route' })}</span>
+          <code>{jumpHostName || t('localTsnNetwork.deviceDetails.directAccessShort', { defaultValue: 'direkt' })}</code>
+        </Box>
 
         {deviceIssues.length > 0 && (
           <Alert severity="warning" sx={{ py: 0.25 }}>
@@ -1778,8 +1751,9 @@ function DeviceTopologyCard({
           ))}
         </Stack>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack className="tsn-device-card__actions" direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
           <Button
+            className="tsn-mini-action"
             size="small"
             variant="outlined"
             startIcon={pingBusy ? <CircularProgress size={14} color="inherit" /> : <PlugZap size={14} />}
@@ -1788,13 +1762,13 @@ function DeviceTopologyCard({
           >
             {t('localTsnNetwork.actions.pingPath', { defaultValue: 'Ping' })}
           </Button>
-          <Button size="small" variant="contained" startIcon={<Terminal size={14} />} onClick={onSsh}>
+          <Button className="tsn-mini-action tsn-mini-action--primary" size="small" variant="contained" startIcon={<Terminal size={14} />} onClick={onSsh}>
             {t('localTsnNetwork.actions.ssh', { defaultValue: 'SSH' })}
           </Button>
-          <Button size="small" variant="outlined" startIcon={<Pencil size={14} />} onClick={onEdit}>
+          <Button className="tsn-mini-action" size="small" variant="outlined" startIcon={<Pencil size={14} />} onClick={onEdit}>
             {t('common.edit')}
           </Button>
-          <Button size="small" variant="outlined" color="error" startIcon={<Trash2 size={14} />} onClick={onDelete}>
+          <Button className="tsn-mini-action tsn-mini-action--danger" size="small" variant="outlined" color="error" startIcon={<Trash2 size={14} />} onClick={onDelete}>
             {t('common.delete')}
           </Button>
         </Stack>
@@ -1811,19 +1785,10 @@ function DeviceTopologyCard({
 
 function MoveConnector({ label }: { label: string }) {
   return (
-    <Stack spacing={0.25} alignItems="center" sx={{ minWidth: 56 }}>
-      <Typography variant="caption" color="text.secondary">
-        {label}
-      </Typography>
-      <Box
-        sx={{
-          width: 56,
-          height: 2,
-          borderRadius: 999,
-          background: 'linear-gradient(90deg, rgba(148,163,184,0.12), rgba(148,163,184,0.72), rgba(148,163,184,0.12))',
-        }}
-      />
-    </Stack>
+    <Box className="tsn-connector">
+      <Typography component="span">{label}</Typography>
+      <Box className="tsn-connector__line"><span /></Box>
+    </Box>
   )
 }
 
@@ -1832,13 +1797,9 @@ function FeatureResultRow({ result, compact = false }: { result: LocalTsnFeature
 
   return (
     <Paper
+      className={`tsn-result-row tsn-result-row--${result.success ? 'success' : 'failed'}`}
       variant="outlined"
-      sx={{
-        p: compact ? 1 : 1.25,
-        borderRadius: 2.5,
-        borderColor: result.success ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.22)',
-        backgroundColor: result.success ? 'rgba(74,222,128,0.04)' : 'rgba(248,113,113,0.045)',
-      }}
+      sx={{ p: compact ? 1 : 1.25 }}
     >
       <Stack spacing={0.75}>
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
@@ -1937,8 +1898,12 @@ function FeatureResultRow({ result, compact = false }: { result: LocalTsnFeature
 }
 
 function StatusChip({ status, label, compact = false }: { status: string; label: string; compact?: boolean }) {
-  const color = STATUS_COLOR[status] || 'default'
-  return <Chip size={compact ? 'small' : 'medium'} color={color} variant={status === 'inactive' || status === 'unknown' ? 'outlined' : 'filled'} label={label} />
+  return (
+    <Box component="span" className={`tsn-status tsn-status--${status}${compact ? ' tsn-status--compact' : ''}`}>
+      <span aria-hidden="true" />
+      {label}
+    </Box>
+  )
 }
 
 function countActiveFeatures(featureStates?: Record<string, LocalTsnFeatureState>) {
